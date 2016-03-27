@@ -1,7 +1,9 @@
 FRACTAL  = -DMandelBulb
-CC       = pgc++
-CFLAGS   = -acc -fast -ta=nvidia,cc30 -Minfo=accel -Minform=inform -O2 $(FRACTAL)
-
+CC       = pgCC
+CXX      = pgCC
+FLAGS    = -acc -fast -ta=nvidia,cc30 -Minfo=accel -Minform=inform -O2 $(FRACTAL)
+CFLAGS   = $(FLAGS)
+CXXFLAGS = $(FLAGS)
 PROGRAM_NAME=mandelbox
 
 $(PROGRAM_NAME): main.o print.o timing.o savebmp.o getparams.o 3d.o getcolor.o distance_est.o \

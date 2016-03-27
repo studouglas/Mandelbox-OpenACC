@@ -13,6 +13,7 @@ public:
 	vec3( double InX, double InY, double InZ ) : x( InX ), y( InY ), z( InZ )
 		{
 		}
+	// #pragma acc routine seq
 	void SetDoublePoint( const double *v ) {  x=v[0]; y=v[1]; z=v[2]; }
 
 	vec3( ) : x(0), y(0), z(0)
@@ -96,6 +97,7 @@ public:
 		}
 
 	// These require math.h for the sqrt function
+	// #pragma acc routine seq
 	double Magnitude( ) const
 		{
 		return sqrt( x*x + y*y + z*z );
