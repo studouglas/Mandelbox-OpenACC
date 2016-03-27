@@ -27,21 +27,27 @@
 using namespace std;
 
 //---lightning and colouring---------
-static vec3 CamLight(1.0,1.0,1.0);
+static vec3 CamLight = {1.0,1.0,1.0};
 static double CamLightW = 1.8;// 1.27536;
 static double CamLightMin = 0.3;// 0.48193;
 //-----------------------------------
-static const vec3 baseColor(1.0, 1.0, 1.0);
-static const vec3 backColor(0.4,0.4,0.4);
+static const vec3 baseColor = {1.0, 1.0, 1.0};
+static const vec3 backColor = {0.4,0.4,0.4};
 //-----------------------------------
 
-void lighting(const vec3 &n, const vec3 &color, const vec3 &pos, const vec3 &direction,  vec3 &outV)
+// #pragma acc routine seq
+inline void lighting(const vec3 &n, const vec3 &color, const vec3 &pos, const vec3 &direction,  vec3 &outV)
 {
-  vec3 nn = n -1.0;
-  double ambient = max( CamLightMin, nn.Dot(direction) )*CamLightW;
-  outV = CamLight*ambient*color;
+  vec3 nn;
+  SUBTRACT_SCALAR(nn, n, 1.0);
+  double d = DOT(direction, nn);
+  double ambient = MAX(CamLightMin, d) * CamLightW;
+  MULT_SCALAR(nn, CamLight, ambient);
+  MULT_POINTWISE(outV, color, nn);
 }
 
+// #pragma acc declare copyin(CamLight, CamLightW, CamLightMin, baseColor, backColor)
+// #pragma acc routine seq
 vec3 getColour(const pixelData &pixData, const RenderParams &render_params,
 	       const vec3 &from, const vec3  &direction)
 {
@@ -54,15 +60,15 @@ vec3 getColour(const pixelData &pixData, const RenderParams &render_params,
       lighting(pixData.normal, hitColor, pixData.hit, direction, hitColor);
       
       //add normal based colouring
-      if(render_params.colourType == 0 || render_params.colourType == 1)
-	{
-	  hitColor = hitColor * pixData.normal;
-	  hitColor = (hitColor + 1.0)/2.0;
-	  hitColor = hitColor*render_params.brightness;
+      if(render_params.colourType == 0 || render_params.colourType == 1) {
+		MULT_POINTWISE(hitColor, hitColor, pixData.normal);
+	  	ADD_SCALAR(hitColor, hitColor, 1.0);
+	  	DIV_SCALAR(hitColor, hitColor, 2.0);
+	  	MULT_SCALAR(hitColor, hitColor, render_params.brightness);
 	  
 	  //gamma correction
 	  clamp(hitColor, 0.0, 1.0);
-	  hitColor = hitColor*hitColor;
+	  MULT_POINTWISE(hitColor, hitColor, hitColor)
 	}
       if(render_params.colourType == 1)
 	{

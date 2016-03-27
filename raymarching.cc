@@ -30,7 +30,7 @@ extern double DE(const vec3 &p);
 void normal (const vec3 & p, vec3 & normal);
 
 // #pragma acc routine seq
-void rayMarch(const RenderParams &render_params, const vec3 &from, const vec3  &direction, double eps,
+void rayMarch(const RenderParams &render_params, const vec3 &from, const vec3 &direction, double eps,
 	      pixelData& pix_data)
 {
   double dist = 0.0;
@@ -43,8 +43,9 @@ void rayMarch(const RenderParams &render_params, const vec3 &from, const vec3  &
   int steps=0;
   vec3 p;
   do 
-    {      
-      p = from + direction * totalDist;
+    {
+    	MULT_SCALAR(p, direction, totalDist);
+    	ADD_POINT(p, p, from);
       dist = DE(p);
       
       totalDist += .95*dist;
@@ -55,7 +56,6 @@ void rayMarch(const RenderParams &render_params, const vec3 &from, const vec3  &
     }
   while (dist > epsModified && totalDist <= render_params.maxDistance && steps < render_params.maxRaySteps);
   
-  vec3 hitNormal;
   if (dist < epsModified) 
     {
       //we didnt escape
@@ -65,7 +65,10 @@ void rayMarch(const RenderParams &render_params, const vec3 &from, const vec3  &
       pix_data.hit = p;
       
       //figure out the normal of the surface at this point
-      const vec3 normPos = p - direction * epsModified;
+      vec3 temp;
+      MULT_SCALAR(temp, direction, epsModified);
+      SUBTRACT_POINT(temp, p, temp);
+      const vec3 normPos = temp;
       normal(normPos, pix_data.normal);
     }
   else 
@@ -79,13 +82,21 @@ void normal(const vec3 & p, vec3 & normal)
   // compute the normal at p
   const double sqrt_mach_eps = 1.4901e-08;
 
-  double eps = std::max( p.Magnitude(), 1.0 )*sqrt_mach_eps;
+  double eps = std::max( MAGNITUDE(p), 1.0 )*sqrt_mach_eps;
 
-  vec3 e1(eps, 0,   0);
-  vec3 e2(0  , eps, 0);
-  vec3 e3(0  , 0, eps);
+  vec3 e1, e2, e3;
+  VEC(e1, eps, 0,   0);
+  VEC(e2, 0  , eps, 0);
+  VEC(e3, 0  , 0, eps);
   
-  normal = vec3(DE(p+e1)-DE(p-e1), DE(p+e2)-DE(p-e2), DE(p+e3)-DE(p-e3));
+  vec3 t1, t2, t3, t4, t5, t6;
+  ADD_POINT(t1, p, e1);
+  SUBTRACT_POINT(t2, p, e1);
+  ADD_POINT(t3, p, e2);
+  SUBTRACT_POINT(t4, p, e2);
+  ADD_POINT(t5, p, e3);
+  SUBTRACT_POINT(t6, p, e3);
+  VEC(normal, DE(t1)-DE(t2), DE(t3)-DE(t4), DE(t5)-DE(t6));
   
-  normal.Normalize();
+  NORMALIZE(normal);
 }

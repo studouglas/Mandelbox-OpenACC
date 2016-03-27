@@ -235,7 +235,7 @@ void MultiplyMatrices(double *result, const double *matrix1, const double *matri
     matrix1[15]*matrix2[15];
 }
 
-void MultiplyMatrixByVector(double *resultvector, double *matrix, double *pvector)
+inline void MultiplyMatrixByVector(double *resultvector, double *matrix, double *pvector)
 {
   resultvector[0]=matrix[0]*pvector[0]+matrix[4]*pvector[1]+matrix[8]*pvector[2]+matrix[12]*pvector[3];
   resultvector[1]=matrix[1]*pvector[0]+matrix[5]*pvector[1]+matrix[9]*pvector[2]+matrix[13]*pvector[3];

@@ -22,7 +22,6 @@
 #ifndef _3d_H
 #define _3d_H
 
-
 #define NEAR 1
 #define FAR 100
 
@@ -54,7 +53,7 @@ void   Translate(double *result, double x, double y, double z);
 // #pragma acc routine seq
 int    UnProject(double winX, double winY, double winZ, const double *model, 
 		 const double *proj, const int *view, double *obj);
-// #pragma acc routine seq
+#pragma acc routine seq
 int    UnProject(double winX, double winY, CameraParams camP, double *obj);
 
 #endif

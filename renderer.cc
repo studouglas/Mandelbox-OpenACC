@@ -30,56 +30,65 @@ extern double getTime();
 extern void   printProgress( double perc, double time );
 
 extern void rayMarch (const RenderParams &render_params, const vec3 &from, const vec3  &to, double eps, pixelData &pix_data);
+#pragma acc routine seq
 extern vec3 getColour(const pixelData &pixData, const RenderParams &render_params,
                       const vec3 &from, const vec3  &direction);
 
+// inline vec3 SUBTRACT_POINT(const double* p1, const double* p2) {
+// 	vec3 res;
+// 	res.x = p1[0] - p2[0];
+// 	res.y = p1[1] - p2[1];
+// 	res.z = p1[2] - p2[2];
+// 	return res;
+// }
 void renderFractal(const CameraParams &camera_params, const RenderParams &renderer_params, 
        unsigned char* image)
 {
+  // shared among all threads
   const double eps = pow(10.0, renderer_params.detail); 
-  double farPoint[3];
-  vec3 to, from;
-  
-  from.SetDoublePoint(camera_params.camPos);
+  vec3 from;
+  VEC(from, camera_params.camPos[0], camera_params.camPos[1], camera_params.camPos[2]);
   
   const int height = renderer_params.height;
   const int width  = renderer_params.width;
   
   pixelData pix_data;
-  
+  double farPoint[3] = {0,0,0};
   double time = getTime();
-  vec3 color;
+  int i,j;
   
-  int i,j,k;
-  
-  // copyin(eps, from, height, width, camera_params[:1], renderer_params[:1], to, color)\
-  // copy(image[:width*height])
-  // #pragma acc kernels
-  for(j = 0; j < height; j++)
+  #pragma acc data copyin(pix_data, eps, from, camera_params[:sizeof(CameraParams)], farPoint)
+  #pragma acc data copy(image[0:width * height * 3])
   {
-    for(i = 0; i < width; i++)
-     {
-      // get point on the 'far' plane
-      // since we render one frame only, we can use the more specialized method
-      // UnProject(i, j, camera_params, farPoint);
+    #pragma acc kernels loop private(farPoint)
+    for(j = 0; j < height; j++)
+    {
+      for(i = 0; i < width; i++)
+      {
+          vec3 to = {1,2,3};
+          vec3 color = {2,3,4};
+          
       
-      // to = farPoint - camera_params.camPos
-      // to = SubtractDoubleDouble(farPoint,camera_params.camPos);
-      // to.Normalize();
-      
-      // //render the pixel
-      // rayMarch(renderer_params, from, to, eps, pix_data);
-      
-      // //get the colour at this pixel
-      // color = getColour(pix_data, renderer_params, from, to);
+         // get point on the 'far' plane
+         // since we render one frame only, we can use the more specialized method
+         // UnProject(i, j, camera_params, farPoint);
         
-      // //save colour into texture
-      // k = (j * width + i)*3;
-      // image[k+2] = (unsigned char)(color.x * 255);
-      // image[k+1] = (unsigned char)(color.y * 255);
-      // image[k]   = (unsigned char)(color.z * 255);
+       	 SUBTRACT_DARRS(to, farPoint, camera_params.camPos);
+         NORMALIZE(to);
+        
+         //render the pixel
+         // rayMarch(renderer_params, from, to, eps, pix_data);
+        
+         //get the colour at this pixel
+         // color = getColour(pix_data, renderer_params, from, to);
+          
+         //save colour into texture
+         int k = (j * width + i) * 3;
+         image[k+2] = (unsigned char)(color.x * 255);
+         image[k+1] = (unsigned char)(color.y * 255);
+         image[k]   = (unsigned char)(color.z * 255);
+      }
     }
-    // printProgress((j+1)/(double)height,getTime()-time);
   }
   printf("\n rendering done:\n");
 }
