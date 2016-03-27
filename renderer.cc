@@ -53,42 +53,44 @@ void renderFractal(const CameraParams &camera_params, const RenderParams &render
   const int width  = renderer_params.width;
   
   pixelData pix_data;
-  double farPoint[3] = {0,0,0};
   double time = getTime();
   int i,j;
   
-  #pragma acc data copyin(pix_data, eps, from, camera_params[:sizeof(CameraParams)], farPoint)
+  printf("Starting data region...\n");
+  // #pragma acc data copyin(camera_params[:sizeof(CameraParams)], renderer_params[:sizeof(RenderParams)])
+  #pragma acc data copyin(eps, from, height, width, pix_data)
   #pragma acc data copy(image[0:width * height * 3])
   {
-    #pragma acc kernels loop private(farPoint)
+    printf("Starting parallel loop...\n");
+    #pragma acc parallel loop
     for(j = 0; j < height; j++)
     {
       for(i = 0; i < width; i++)
       {
-          vec3 to = {1,2,3};
-          vec3 color = {2,3,4};
-          
+        vec3 to = {1,2,3};
+        vec3 color = {2,3,4};
+        double farPoint[3] = {0,0,0};
       
-         // get point on the 'far' plane
-         // since we render one frame only, we can use the more specialized method
-         // UnProject(i, j, camera_params, farPoint);
+        // get point on the 'far' plane
+        // since we render one frame only, we can use the more specialized method
+        // UnProject(i, j, camera_params, farPoint);
         
-       	 SUBTRACT_DARRS(to, farPoint, camera_params.camPos);
-         NORMALIZE(to);
+       	SUBTRACT_DARRS(to, farPoint, camera_params.camPos);
+        NORMALIZE(to);
         
-         //render the pixel
-         // rayMarch(renderer_params, from, to, eps, pix_data);
+        //render the pixel
+        // rayMarch(renderer_params, from, to, eps, pix_data);
         
-         //get the colour at this pixel
-         // color = getColour(pix_data, renderer_params, from, to);
+        //get the colour at this pixel
+        // color = getColour(pix_data, renderer_params, from, to);
           
-         //save colour into texture
-         int k = (j * width + i) * 3;
-         image[k+2] = (unsigned char)(color.x * 255);
-         image[k+1] = (unsigned char)(color.y * 255);
-         image[k]   = (unsigned char)(color.z * 255);
+        //save colour into texture
+        int k = (j * width + i) * 3;
+        image[k+2] = (unsigned char)(color.x * 255);
+        image[k+1] = (unsigned char)(color.y * 255);
+        image[k]   = (unsigned char)(color.z * 255);
       }
     }
   }
-  printf("\n rendering done:\n");
+  printf("\nRendering done:\n");
 }
