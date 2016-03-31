@@ -69,7 +69,7 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
     {
       for(int i = 0; i < width; i++)
       {
-      	int k = j*height + i;
+      	int k = j*width + i;
 
         UnProject(i, j, camera_params, &(d_farPoints[k*3]));
         

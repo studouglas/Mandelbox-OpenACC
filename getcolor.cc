@@ -27,13 +27,12 @@
 using namespace std;
 
 //---lightning and colouring---------
-static vec3 CamLight = {1.0,1.0,1.0};
-static double CamLightW = 1.8;// 1.27536;
-static double CamLightMin = 0.3;// 0.48193;
-//-----------------------------------
-static const vec3 baseColor = {1.0, 1.0, 1.0};
-static const vec3 backColor = {0.4,0.4,0.4};
-//-----------------------------------
+double CamLightW = 1.8;// 1.27536;
+double CamLightMin = 0.3;// 0.48193;
+
+#define CAM_LIGHT 1.0
+#define BASE_COLOR 1.0
+#define BACK_COLOR 0.4
 
 // #pragma acc routine seq
 inline void lighting(const vec3 &n, const vec3 &color, const vec3 &pos, const vec3 &direction,  vec3 &outV)
@@ -42,43 +41,44 @@ inline void lighting(const vec3 &n, const vec3 &color, const vec3 &pos, const ve
   SUBTRACT_SCALAR(nn, n, 1.0);
   double d = DOT(direction, nn);
   double ambient = MAX(CamLightMin, d) * CamLightW;
-  MULT_SCALAR(nn, CamLight, ambient);
+  vec3 camLight;
+  VEC(camLight, CAM_LIGHT, CAM_LIGHT, CAM_LIGHT);
+  MULT_SCALAR(nn, camLight, ambient);
   MULT_POINTWISE(outV, color, nn);
 }
 
-#pragma acc declare copyin(CamLight, CamLightW, CamLightMin, baseColor, backColor)
+#pragma acc declare copyin(CamLightW, CamLightMin)
 #pragma acc routine seq
-inline void getColour(vec3 &hitColor, const pixelData &pixData, const  RenderParams &render_params,  vec3 &from,  vec3  &direction)
+inline void getColour(vec3 &hitColor, const pixelData &pixData, const  RenderParams &render_params,  vec3 &from,  vec3 &direction)
 {
-  //colouring and lightning
-  hitColor = baseColor;
-  
+  VEC(hitColor, BASE_COLOR, BASE_COLOR, BASE_COLOR);
+
   if (pixData.escaped == false) 
-    {
-      //apply lighting
-      lighting(pixData.normal, hitColor, pixData.hit, direction, hitColor);
-      
-      //add normal based colouring
-      if(render_params.colourType == 0 || render_params.colourType == 1) {
-		MULT_POINTWISE(hitColor, hitColor, pixData.normal);
-	  	ADD_SCALAR(hitColor, hitColor, 1.0);
-	  	DIV_SCALAR(hitColor, hitColor, 2.0);
-	  	MULT_SCALAR(hitColor, hitColor, render_params.brightness);
-	  
-	  //gamma correction
-	  clamp(hitColor, 0.0, 1.0);
-	  MULT_POINTWISE(hitColor, hitColor, hitColor)
-	}
-      if(render_params.colourType == 1)
-	{
-	  //"swap" colors
-	  double t = hitColor.x;
-	  hitColor.x = hitColor.z;
-	  hitColor.z = t;
-	}
+  {
+    //apply lighting
+    lighting(pixData.normal, hitColor, pixData.hit, direction, hitColor);
+    
+    //add normal based colouring
+    if(render_params.colourType == 0 || render_params.colourType == 1) {
+      MULT_POINTWISE(hitColor, hitColor, pixData.normal);
+      ADD_SCALAR(hitColor, hitColor, 1.0);
+      DIV_SCALAR(hitColor, hitColor, 2.0);
+      MULT_SCALAR(hitColor, hitColor, render_params.brightness);
+
+      //gamma correction
+      clamp(hitColor, 0.0, 1.0);
+      MULT_POINTWISE(hitColor, hitColor, hitColor)
     }
+    if(render_params.colourType == 1)
+    {
+     //"swap" colors
+     double t = hitColor.x;
+     hitColor.x = hitColor.z;
+     hitColor.z = t;
+    }
+  }
   else {
-    //we have the background colour
-    hitColor = backColor;
+      //we have the background colour
+      VEC(hitColor, BACK_COLOR, BACK_COLOR, BACK_COLOR);
   }
 }
