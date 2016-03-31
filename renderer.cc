@@ -30,11 +30,13 @@
 extern double getTime();
 extern void   printProgress( double perc, double time );
 
-// #pragma acc routine seq
+#pragma acc routine seq
 extern void rayMarch (const RenderParams &render_params, const vec3 &from, const vec3  &to, double eps, pixelData &pix_data);
 
 #pragma acc routine seq
 extern void getColour(vec3 & colour, const pixelData &pixData, const RenderParams &render_params, vec3 &from, vec3 &direction);
+
+extern MandelBoxParams mandelBox_params;
 
 void renderFractal(const CameraParams camera_params, const RenderParams renderer_params, unsigned char* image)
 {
@@ -57,6 +59,7 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
 
   printf("Starting data region...\n");
   // #pragma acc data copyin(camera_params, renderer_params)
+  // #pragma acc data copyin(mandelBox_params)
   #pragma acc data deviceptr(d_to, d_colours, d_farPoints, d_pixData)
   #pragma acc data copyin(eps, from, pix_data)
   #pragma acc data copy(image[0:n*3])

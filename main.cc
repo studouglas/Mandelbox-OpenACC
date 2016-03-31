@@ -31,6 +31,8 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
 void saveBMP      (const char* filename, const unsigned char* image, int width, int height);
 
 #define NUM_FRAMES 1
+
+#pragma acc declare copyin(mandelBox_params)
 MandelBoxParams mandelBox_params;
 
 int main(int argc, char** argv)
