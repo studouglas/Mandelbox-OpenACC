@@ -58,8 +58,7 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
   pixelData* d_pixData = (pixelData*)acc_malloc(n * sizeof(pixelData));
 
   printf("Starting data region...\n");
-  // #pragma acc data copyin(camera_params, renderer_params)
-  // #pragma acc data copyin(mandelBox_params)
+  #pragma acc data copyin(camera_params, renderer_params)
   #pragma acc data deviceptr(d_to, d_colours, d_farPoints, d_pixData)
   #pragma acc data copyin(eps, from, pix_data)
   #pragma acc data copy(image[0:n*3])
@@ -71,16 +70,14 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
       for(int i = 0; i < width; i++)
       {
       	int k = j*height + i;
-        
-        // get point on the 'far' plane
-        // since we render one frame only, we can use the more specialized method
+
         UnProject(i, j, camera_params, &(d_farPoints[k*3]));
         
        	SUBTRACT_DARRS(d_to[k], (&(d_farPoints[k*3])), camera_params.camPos);
         NORMALIZE(d_to[k]);
         
         // render the pixel
-        // rayMarch(renderer_params, from, d_to[k], eps, d_pixData[k]);
+        rayMarch(renderer_params, from, d_to[k], eps, d_pixData[k]);
         
         // get the colour at this pixel
         getColour(d_colours[k], d_pixData[k], renderer_params, from, d_to[k]);
@@ -92,5 +89,5 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
       }
     }
   }
-  printf("\nRendering done:\n");
+  printf("\nRendering done\n");
 }
