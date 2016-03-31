@@ -46,13 +46,12 @@ inline void lighting(const vec3 &n, const vec3 &color, const vec3 &pos, const ve
   MULT_POINTWISE(outV, color, nn);
 }
 
-// #pragma acc declare copyin(CamLight, CamLightW, CamLightMin, baseColor, backColor)
-// #pragma acc routine seq
-vec3 getColour(const pixelData &pixData, const RenderParams &render_params,
-	       const vec3 &from, const vec3  &direction)
+#pragma acc declare copyin(CamLight, CamLightW, CamLightMin, baseColor, backColor)
+#pragma acc routine seq
+inline void getColour(vec3 &hitColor, const pixelData &pixData, const  RenderParams &render_params,  vec3 &from,  vec3  &direction)
 {
   //colouring and lightning
-  vec3 hitColor = baseColor;
+  hitColor = baseColor;
   
   if (pixData.escaped == false) 
     {
@@ -82,5 +81,4 @@ vec3 getColour(const pixelData &pixData, const RenderParams &render_params,
     //we have the background colour
     hitColor = backColor;
   }
-  return hitColor;
 }

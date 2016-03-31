@@ -45,7 +45,7 @@ void   ComputeNormalOfPlane(double *normal, double *v1, double *v2);
 // #pragma acc routine seq
 void   MultiplyMatrices(double *result, const double *matrix1, const double *matrix2);
 // #pragma acc routine seq
-void   MultiplyMatrixByVector(double *resultvector, double *matrix, double *pvector);
+void   MultiplyMatrixByVector(double *resultvector, const double *matrix, double *pvector);
 // #pragma acc routine seq
 int    InvertMatrix(double *m, double *out);
 // #pragma acc routine seq
@@ -54,6 +54,6 @@ void   Translate(double *result, double x, double y, double z);
 int    UnProject(double winX, double winY, double winZ, const double *model, 
 		 const double *proj, const int *view, double *obj);
 #pragma acc routine seq
-int    UnProject(double winX, double winY, CameraParams camP, double *obj);
+int    UnProject(double winX, double winY, const CameraParams & camP, double *obj);
 
 #endif
