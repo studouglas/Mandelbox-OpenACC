@@ -46,7 +46,7 @@ inline void lighting(const vec3 &n, const vec3 &color, const vec3 &pos, const ve
 
 #pragma acc declare copyin(CamLightW, CamLightMin)
 #pragma acc routine seq
-inline void getColour(vec3 &hitColor, const pixelData &pixData, const  RenderParams &render_params,  vec3 &from,  vec3 &direction)
+inline void getColour(vec3 &hitColor, const pixelData &pixData, const RenderParams &render_params, const vec3 &from, const vec3 &direction)
 {
   VEC(hitColor, BASE_COLOR, BASE_COLOR, BASE_COLOR);
 

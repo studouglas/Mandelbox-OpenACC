@@ -25,8 +25,9 @@
 #include "vector3d.h"
 
 #define SQR(x) ((x)*(x))
-#define COMPONENT_FOLD(x) { (x) = (fabs(x) <= 1) ? (x) : ((x > 0) ? (2-x-x) : (-2-x-x)); }
+#define COMPONENT_FOLD(x) { (x) = (fabs(x) <= 1) ? (x) : (((x) > 0) ? (2-(x)-(x)) : (-2-(x)-(x))); }
 
+#pragma acc declare copyin(mandelBox_params)
 extern MandelBoxParams mandelBox_params;
 
 inline double MandelBoxDE(const vec3 &p0, const MandelBoxParams &params, double c1, double c2)
@@ -40,7 +41,7 @@ inline double MandelBoxDE(const vec3 &p0, const MandelBoxParams &params, double 
   const double rFixed2rMin2 = rFixed2/rMin2;
 
   int i = 0;
-  while (i< params.num_iter && r2 < escape)
+  while (i < params.num_iter && r2 < escape)
   {
     COMPONENT_FOLD(p.x);
     COMPONENT_FOLD(p.y);
@@ -56,12 +57,12 @@ inline double MandelBoxDE(const vec3 &p0, const MandelBoxParams &params, double 
     else if (r2 < rFixed2) 
     {
       const double t = (rFixed2/r2);
-      MULT_SCALAR(p, p, rFixed2/r2);
+      MULT_SCALAR(p, p, (rFixed2/r2));
       dfactor *= t;
     }
     
     dfactor = dfactor * fabs(params.scale) + 1.0;      
-    MULT_SCALAR(p, p,params.scale);
+    MULT_SCALAR(p, p, params.scale);
     ADD_POINT(p,p,p0);
     i++;
   }
@@ -81,71 +82,84 @@ inline void normal(const vec3 & p, vec3 & normal)
 {
   // compute the normal at p
   const double sqrt_mach_eps = 1.4901e-08;
+  double eps = MAX( MAGNITUDE(p), 1.0 ) * sqrt_mach_eps;
+  vec3 t1, e1;  
+  double x;
 
-  double eps = MAX( MAGNITUDE(p), 1.0 )*sqrt_mach_eps;
-
-  vec3 e1, e2, e3;
-  VEC(e1, eps, 0,   0);
-  VEC(e2, 0  , eps, 0);
-  VEC(e3, 0  , 0, eps);
-  
-  vec3 t1, t2, t3, t4, t5, t6;
+  VEC(e1, eps, 0, 0);
   ADD_POINT(t1, p, e1);
-  SUBTRACT_POINT(t2, p, e1);
-  ADD_POINT(t3, p, e2);
-  SUBTRACT_POINT(t4, p, e2);
-  ADD_POINT(t5, p, e3);
-  SUBTRACT_POINT(t6, p, e3);
-  VEC(normal, DE(t1)-DE(t2), DE(t3)-DE(t4), DE(t5)-DE(t6));
+  x = DE(t1);
+  SUBTRACT_POINT(t1, p, e1);
+  normal.x = DE(t1) - x;
   
+  VEC(e1, 0, eps, 0);
+  ADD_POINT(t1, p, e1);
+  x = DE(t1);
+  SUBTRACT_POINT(t1, p, e1);
+  normal.y = DE(t1) - x;
+
+  VEC(e1, 0, 0, eps);
+  ADD_POINT(t1, p, e1);
+  // x = DE(t1);
+  SUBTRACT_POINT(t1, p, e1);
+  // normal.z = DE(t1) - x;
+  
+  // calculating either of the last two x1,x2 causes compiler warning:
+  // 'No device symbol for address reference'
+  // This is dependent on order in source file only.
+
   NORMALIZE(normal);
 }
 
 #pragma acc declare copyin(mandelBox_params)
 #pragma acc routine seq
 void rayMarch(const RenderParams &render_params, const vec3 &from, const vec3 &direction, double eps,
-        pixelData& pix_data)
+        pixelData& pix_data, vec3& tests)
 {
+
   double dist = 0.0;
   double totalDist = 0.0;
   
   // We will adjust the minimum distance based on the current zoom
-
   double epsModified = 0.0;
   
   int steps = 0;
   vec3 p;
   do 
-    {
-      MULT_SCALAR(p, direction, totalDist);
-      ADD_POINT(p, p, from);
-      dist = DE(p);
-      
-      totalDist += .95*dist;
-      
-      epsModified = totalDist;
-      epsModified *= eps;
-      steps++;
-    }
+  {
+    MULT_SCALAR(p, direction, totalDist);
+    ADD_POINT(p, p, from);
+    dist = DE(p);
+    
+    totalDist += 0.95 * dist;
+    
+    epsModified = totalDist;
+    epsModified *= eps;
+    steps++;
+  }
   while (dist > epsModified && totalDist <= render_params.maxDistance && steps < render_params.maxRaySteps);
+  tests.x = DE(from);
+  tests.y = DE(direction);
+  tests.z = totalDist;
   
   if (dist < epsModified) 
-    {
-      //we didnt escape
-      // pix_data.escaped = false;
-      
-      // We hit something, or reached MaxRaySteps
-      pix_data.hit = p;
-      
-      //figure out the normal of the surface at this point
-      vec3 temp;
-      MULT_SCALAR(temp, direction, epsModified);
-      SUBTRACT_POINT(temp, p, temp);
-      const vec3 normPos = temp;
-      normal(normPos, pix_data.normal);
-    }
-  else 
+  {
+    //we didnt escape
+    pix_data.escaped = false;
+    
+    // We hit something, or reached MaxRaySteps
+    pix_data.hit = p;
+    
+    //figure out the normal of the surface at this point
+    vec3 temp;
+    MULT_SCALAR(temp, direction, epsModified);
+    SUBTRACT_POINT(temp, p, temp);
+    const vec3 normPos = temp;
+    normal(normPos, pix_data.normal);
+  }
+  else {
     //we have the background colour
     pix_data.escaped = true;
+  }
 }
 

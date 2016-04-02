@@ -19,6 +19,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "color.h"
 #include "mandelbox.h"
@@ -31,10 +32,10 @@ extern double getTime();
 extern void   printProgress( double perc, double time );
 
 #pragma acc routine seq
-extern void rayMarch (const RenderParams &render_params, const vec3 &from, const vec3  &to, double eps, pixelData &pix_data);
+extern void rayMarch (const RenderParams &render_params, const vec3 &from, const vec3  &to, double eps, pixelData &pix_data, vec3 &tests);
 
 #pragma acc routine seq
-extern void getColour(vec3 & colour, const pixelData &pixData, const RenderParams &render_params, vec3 &from, vec3 &direction);
+extern void getColour(vec3 & colour, const pixelData &pixData, const RenderParams &render_params, const vec3 &from, const vec3 &direction);
 
 extern MandelBoxParams mandelBox_params;
 
@@ -42,9 +43,10 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
 {
   // shared among all threads
   const double eps = pow(10.0, renderer_params.detail); 
-  vec3 from;
-  VEC(from, camera_params.camPos[0], camera_params.camPos[1], camera_params.camPos[2]);
-  
+  vec3 f;
+  VEC(f, camera_params.camPos[0], camera_params.camPos[1], camera_params.camPos[2]);
+  const vec3 from = f;
+
   const int height = renderer_params.height;
   const int width  = renderer_params.width;
   const int n = width*height;
@@ -57,7 +59,12 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
   double* d_farPoints = (double*)acc_malloc(n * 3 * sizeof(double));
   pixelData* d_pixData = (pixelData*)acc_malloc(n * sizeof(pixelData));
 
+  // [d_to.x, d_to.y, d_to.z]
+  const int NUM_TEST_VALS = 5;
+  double* testResults = (double*)malloc(n * NUM_TEST_VALS * sizeof(double));
+
   printf("Starting data region...\n");
+  #pragma acc data copy(testResults[:n*NUM_TEST_VALS])
   #pragma acc data copyin(camera_params, renderer_params)
   #pragma acc data deviceptr(d_to, d_colours, d_farPoints, d_pixData)
   #pragma acc data copyin(eps, from)
@@ -75,13 +82,26 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
         
        	SUBTRACT_DARRS(d_to[k], (&(d_farPoints[k*3])), camera_params.camPos);
         NORMALIZE(d_to[k]);
-        
+        // 'd_to' seems good
+        // 'from' vector seems good
+        // 'eps' seems good
+        // 'renderer_params.maxDistance' looks good
+
         // render the pixel
-        rayMarch(renderer_params, from, d_to[k], eps, d_pixData[k]);
+        vec3 tests;
         
+        // d_to[k] is fine before hand, but within rayMarch it only sees []
+        const vec3 dir = d_to[k];
+        rayMarch(renderer_params, from, dir, eps, d_pixData[k], tests);
+        testResults[k*NUM_TEST_VALS] = (d_pixData[k].escaped) ? 1.0 : 0.0;
+        testResults[k*NUM_TEST_VALS + 2] = tests.x;
+        testResults[k*NUM_TEST_VALS + 3] = tests.y;
+        testResults[k*NUM_TEST_VALS + 4] = tests.z;
+
         // get the colour at this pixel
-        getColour(d_colours[k], d_pixData[k], renderer_params, from, d_to[k]);
-          
+        getColour(d_colours[k], d_pixData[k], renderer_params, from, dir);
+        testResults[k*NUM_TEST_VALS+1] = d_colours[k].x;
+
         //save colour into texture
         image[k*3 + 2] = (unsigned char)(d_colours[k].x * 255);
         image[k*3 + 1] = (unsigned char)(d_colours[k].y * 255);
@@ -89,5 +109,16 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
       }
     }
   }
+
   printf("\nRendering done\n");
+  for (int i = 0; i < n; i++) {
+      int k = i*NUM_TEST_VALS;
+      printf("[i = %4d, k = %d]", i, k);
+      printf("escaped  = %f | ", testResults[k]);
+      printf("colour.r = %f | ", testResults[k+1]);
+      printf("tests[0] (DE(from)) = %f | ", testResults[k+2]);
+      printf("tests[1] (DE(direction)) = %f | ", testResults[k+3]);
+      printf("tests[2] (tDist) = %f\n" , testResults[k+4]);
+  }
+  printf("\n\n");
 }

@@ -22,9 +22,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define PI 3.14159265358979323846 // M_PI not defined in accelmath
 #ifdef _OPENACC
   #include <accelmath.h>
-  #define PI 3.14159265358979323846
 #else
   #include <math.h>
 #endif
