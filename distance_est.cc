@@ -18,8 +18,8 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include "vector3d.h"
-#include "mandelbox.h"
+// #include "vector3d.h"
+// #include "mandelbox.h"
 
-extern MandelBoxParams mandelBox_params;
+// extern MandelBoxParams mandelBox_params;
 

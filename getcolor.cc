@@ -18,13 +18,10 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
 #include "color.h"
 #include "renderer.h"
 #include "vector3d.h"
-#include <cmath>
-#include <algorithm>
-
-using namespace std;
 
 //---lightning and colouring---------
 double CamLightW = 1.8;// 1.27536;
@@ -79,6 +76,7 @@ inline void getColour(vec3 &hitColor, const pixelData &pixData, const  RenderPar
   }
   else {
       //we have the background colour
-      VEC(hitColor, BACK_COLOR, BACK_COLOR, BACK_COLOR);
+  	  // VEC(hitColor, BACK_COLOR, BACK_COLOR, BACK_COLOR);
+      VEC(hitColor, 0.5, 0, 0);
   }
 }

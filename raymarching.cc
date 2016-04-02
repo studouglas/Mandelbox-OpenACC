@@ -18,9 +18,6 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include <assert.h>
-#include <algorithm>
-#include <stdio.h>
 
 #include "color.h"
 #include "renderer.h"
@@ -39,7 +36,7 @@ inline double MandelBoxDE(const vec3 &p0, const MandelBoxParams &params, double 
   double rFixed2 = SQR(params.rFixed);
   double escape  = SQR(params.escape_time);
   double dfactor = 1; 
-  double r2      =-1;
+  double r2      = -1;
   const double rFixed2rMin2 = rFixed2/rMin2;
 
   int i = 0;
@@ -56,14 +53,14 @@ inline double MandelBoxDE(const vec3 &p0, const MandelBoxParams &params, double 
       MULT_SCALAR(p, p, rFixed2rMin2);
       dfactor *= (rFixed2rMin2);
     }
-    else if ( r2<rFixed2) 
+    else if (r2 < rFixed2) 
     {
       const double t = (rFixed2/r2);
       MULT_SCALAR(p, p, rFixed2/r2);
       dfactor *= t;
     }
     
-    dfactor = dfactor*fabs(params.scale)+1.0;      
+    dfactor = dfactor * fabs(params.scale) + 1.0;      
     MULT_SCALAR(p, p,params.scale);
     ADD_POINT(p,p,p0);
     i++;
@@ -85,7 +82,7 @@ inline void normal(const vec3 & p, vec3 & normal)
   // compute the normal at p
   const double sqrt_mach_eps = 1.4901e-08;
 
-  double eps = std::max( MAGNITUDE(p), 1.0 )*sqrt_mach_eps;
+  double eps = MAX( MAGNITUDE(p), 1.0 )*sqrt_mach_eps;
 
   vec3 e1, e2, e3;
   VEC(e1, eps, 0,   0);
@@ -116,7 +113,7 @@ void rayMarch(const RenderParams &render_params, const vec3 &from, const vec3 &d
 
   double epsModified = 0.0;
   
-  int steps=0;
+  int steps = 0;
   vec3 p;
   do 
     {
@@ -127,7 +124,7 @@ void rayMarch(const RenderParams &render_params, const vec3 &from, const vec3 &d
       totalDist += .95*dist;
       
       epsModified = totalDist;
-      epsModified*=eps;
+      epsModified *= eps;
       steps++;
     }
   while (dist > epsModified && totalDist <= render_params.maxDistance && steps < render_params.maxRaySteps);
@@ -135,7 +132,7 @@ void rayMarch(const RenderParams &render_params, const vec3 &from, const vec3 &d
   if (dist < epsModified) 
     {
       //we didnt escape
-      pix_data.escaped = false;
+      // pix_data.escaped = false;
       
       // We hit something, or reached MaxRaySteps
       pix_data.hit = p;

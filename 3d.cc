@@ -18,10 +18,17 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include <stdio.h>
+// #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <string.h>
+
+#ifdef _OPENACC
+  #include <accelmath.h>
+  #define PI 3.14159265358979323846
+#else
+  #include <math.h>
+#endif
+
 #include "3d.h"
 
 //---------------------------------------------------------------------------------------------
@@ -78,7 +85,7 @@ void Perspective(double fov, double aspect, double zNear, double zFar, double *p
 {
   double ymax, xmax;
   
-  ymax = zNear * tan(fov * M_PI / 360.0);
+  ymax = zNear * tan(fov * PI / 360.0);
   //ymin = -ymax;
   //xmin = -ymax * aspectRatio;
   xmax = ymax * aspect;

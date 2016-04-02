@@ -49,7 +49,7 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
   const int width  = renderer_params.width;
   const int n = width*height;
 
-  pixelData pix_data;
+  // pixelData pix_data;
   double time = getTime();
   
   vec3* d_to = (vec3*)acc_malloc(n * sizeof(vec3));
@@ -60,7 +60,7 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
   printf("Starting data region...\n");
   #pragma acc data copyin(camera_params, renderer_params)
   #pragma acc data deviceptr(d_to, d_colours, d_farPoints, d_pixData)
-  #pragma acc data copyin(eps, from, pix_data)
+  #pragma acc data copyin(eps, from)
   #pragma acc data copy(image[0:n*3])
   {
     printf("Starting parallel loop...\n");
