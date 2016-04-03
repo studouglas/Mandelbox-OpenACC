@@ -63,14 +63,14 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
   const int NUM_TEST_VALS = 9;
   double* testResults = (double*)malloc(n * NUM_TEST_VALS * sizeof(double));
 
-  printf("Starting data region...\n");
+  //printf("Starting data region...\n");
   #pragma acc data copy(testResults[:n*NUM_TEST_VALS])
   #pragma acc data copyin(camera_params, renderer_params)
   #pragma acc data deviceptr(d_to, d_colours, d_farPoints, d_pixData)
   #pragma acc data copyin(eps, from)
   #pragma acc data copy(image[0:n*3])
   {
-    printf("Starting parallel loop...\n");
+    //printf("Starting parallel loop...\n");
     #pragma acc kernels loop independent collapse(2)
     for(int j = 0; j < height; j++)
     {
@@ -118,7 +118,7 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
     }
   }
 
-  printf("\nRendering done\n");
+  //printf("\nRendering done\n");
   // for (int i = 0; i < n; i++) {
   //     int k = i*NUM_TEST_VALS;
   //     printf("[i = %4d] ", i);
@@ -126,5 +126,5 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
   //     printf("dir = [%f,%f,%f] | ", testResults[k+3], testResults[k+4], testResults[k+5]);
   //     printf("d_to[k] = [%f,%f,%f]\n " , testResults[k+6],testResults[k+7],testResults[k+8]);
   // }
-  printf("\n\n");
+  //printf("\n\n");
 }

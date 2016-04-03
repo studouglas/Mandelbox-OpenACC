@@ -24,19 +24,34 @@
 #include "renderer.h"
 #include "mandelbox.h"
 
+//used for making directory to hold all generated images
+#include <stdio.h>
+#include <string.h>
+#include <sys/types.h> 
+#include <sys/stat.h>
+#include <unistd.h>
+
 void getParameters(char *filename, CameraParams *camera_params, RenderParams *renderer_params,
 		   MandelBoxParams *mandelBox_paramsP);
 void init3D       (CameraParams *camera_params, const RenderParams *renderer_params);
 void renderFractal(const CameraParams camera_params, const RenderParams renderer_params, unsigned char* image);
 void saveBMP      (const char* filename, const unsigned char* image, int width, int height);
 
-#define NUM_FRAMES 1
+#define NUM_FRAMES 45
 
 #pragma acc declare copyin(mandelBox_params)
 MandelBoxParams mandelBox_params;
 
 int main(int argc, char** argv)
 {
+	// make directory to hold all the generated images
+	struct stat st = {0};
+
+	if (stat("/videoDir", &st) == -1) {
+		mkdir("/videoDir", 0700);
+	}
+
+
   CameraParams    camera_params;
   RenderParams    renderer_params;
   
@@ -49,8 +64,13 @@ int main(int argc, char** argv)
 
   for (int i = 0; i < NUM_FRAMES; i++) {
     renderFractal(camera_params, renderer_params, image);
+	char new_file_name[80];
+	camera_params.camPos[0] -= 0.2;
+	camera_params.camPos[1] -= 0.1;
+	camera_params.camPos[2] -= 0.1;
+	sprintf(new_file_name, "image_%d.bmp", i);
+	saveBMP(new_file_name, image, renderer_params.width, renderer_params.height);
   }
-  saveBMP(renderer_params.file_name, image, renderer_params.width, renderer_params.height);
   
   free(image);
 
