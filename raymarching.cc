@@ -138,22 +138,6 @@ void rayMarch(const RenderParams &render_params, const vec3 &from, const vec3 &d
     steps++;
   }
   while (dist > epsModified && totalDist <= render_params.maxDistance && steps < render_params.maxRaySteps);
-  // vec3 p1;
-  // VEC(p1, from.x, from.y, from.z);
-  // COMPONENT_FOLD(p1.x);
-  // COMPONENT_FOLD(p1.y);
-  // tests1.x = MAGNITUDE(from);
-  // tests1.y = p1.x;
-  // tests1.z = p1.y;
-
-  // tests2.x = DE(from);
-  // double r2;
-  // DOT_ASSIGN(r2, from);
-  // tests2.y = r2;
-  // vec3 a;
-  // VEC(a, 1.0, 1.0, 1.0);
-  // MULT_SCALAR(a,a, 5.0);
-  // tests2.z = a.z;
   
   if (dist < epsModified) 
   {

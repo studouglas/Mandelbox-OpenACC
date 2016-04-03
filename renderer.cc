@@ -96,5 +96,11 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
   }
 
   printf("\nRendering done\n");
+  // for (int i = 0; i < n; i++) {
+  //   int k = i*3;
+  //   if (image[k] != 102 && image[k+1] != 102 && image[k+2] != 102) {
+  //     printf("image[%3d] = [%3d,%3d,%3d]\n", i, image[k], image[k+1], image[k+2]);
+  //   }
+  // }
   printf("\n\n");
 }

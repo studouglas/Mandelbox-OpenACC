@@ -23,9 +23,9 @@
 #include "camera.h"
 #include "renderer.h"
 #include "mandelbox.h"
-#include "openacc.h"
 #include "vector3d.h"
 #include "color.h"
+#include "openacc.h"
 
 void getParameters(char *filename, CameraParams *camera_params, RenderParams *renderer_params,
 		   MandelBoxParams *mandelBox_paramsP);
