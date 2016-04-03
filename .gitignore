@@ -1,5 +1,7 @@
 # Executable
 mandelbox
+mandelVideo.mpg
+*.bmp
 
 # Compiled Object files
 *.slo
