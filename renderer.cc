@@ -20,19 +20,19 @@
 */
 #include <stdio.h>
 #include <stdlib.h>
+#include "openacc.h"
 
 #include "color.h"
 #include "mandelbox.h"
 #include "camera.h"
 #include "vector3d.h"
 #include "3d.h"
-#include "openacc.h"
 
 extern double getTime();
 extern void   printProgress( double perc, double time );
 
 #pragma acc routine seq
-extern void rayMarch (const RenderParams &render_params, const vec3 &from, const vec3  &to, double eps, pixelData &pix_data);
+extern void rayMarch (const RenderParams &render_params, const vec3 &from, const vec3  &to, double eps, pixelData &pix_data, double& distance);
 
 #pragma acc routine seq
 extern void getColour(vec3 & colour, const pixelData &pixData, const RenderParams &render_params, const vec3 &from, const vec3 &direction);
@@ -42,6 +42,8 @@ extern vec3* d_to;
 extern vec3* d_colours;
 extern double* d_farPoints;
 extern pixelData* d_pixData;
+
+extern vec3 newLookAt;
 
 void renderFractal(const CameraParams camera_params, const RenderParams renderer_params, unsigned char* image)
 {
@@ -54,10 +56,12 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
   const int height = renderer_params.height;
   const int width  = renderer_params.width;
   const int n = width * height;
+  
+  double* distances = (double*)malloc(n * sizeof(double));
 
   #pragma acc data copyin(camera_params, renderer_params, eps, from)
   #pragma acc data deviceptr(d_to, d_colours, d_farPoints, d_pixData)
-  #pragma acc data copyout(image[:n*3])
+  #pragma acc data copyout(image[:n*3], distances[:n])
   {
     #pragma acc kernels loop independent collapse(2)
     for(int j = 0; j < height; j++)
@@ -71,7 +75,7 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
        	SUBTRACT_DARRS(d_to[k], (&(d_farPoints[k*3])), camera_params.camPos);
         NORMALIZE(d_to[k]);
         
-        rayMarch(renderer_params, from, d_to[k], eps, d_pixData[k]);
+        rayMarch(renderer_params, from, d_to[k], eps, d_pixData[k], distances[k]);
         getColour(d_colours[k], d_pixData[k], renderer_params, from, d_to[k]);
 
         //save colour into texture
@@ -81,5 +85,26 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
       }
     }
   }
+
+  // find the index of the farthest point
+  double maxDistance = 0;
+  int maxDistanceIndex = -1;
+  for (int i = 0; i < n; i++) {
+    if (distances[i] > maxDistance) {
+      maxDistance = distances[i];
+      maxDistanceIndex = i;
+    }
+  }
   
+  // copy the vector at that point to our new look at
+  if (maxDistanceIndex >= 0) {
+      acc_memcpy_from_device(&newLookAt, &(d_pixData[maxDistanceIndex].hit), sizeof(vec3));
+  } else {
+    printf("No distance greater than 0 found. Looking at [0,0,0].\n");
+    newLookAt.x = 0;
+    newLookAt.y = 0;
+    newLookAt.z = 0;
+  }
+
+  free(distances);
 }

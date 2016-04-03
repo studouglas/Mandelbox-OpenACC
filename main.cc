@@ -52,6 +52,7 @@ void genNewCamParams(CameraParams &curCam, CameraParams &nextCam){
 	curCam.camPos[2] += (nextCam.camPos[2] - curCam.camPos[2])*0.01;
 }
 
+vec3 newLookAt;
 
 #pragma acc declare copyin(mandelBox_params)
 MandelBoxParams mandelBox_params;
@@ -60,7 +61,8 @@ vec3* d_to;
 vec3* d_colours;
 double* d_farPoints;
 pixelData* d_pixData;
-#pragma acc declare deviceptr(d_to, d_colours, d_farPoints, d_pixData)
+double* d_distances;
+#pragma acc declare deviceptr(d_to, d_colours, d_farPoints, d_pixData, d_distances)
 
 int main(int argc, char** argv)
 {
@@ -89,8 +91,6 @@ int main(int argc, char** argv)
   camStop[2].camPos[1] = 4;
   camStop[2].camPos[2] = 5;
   
-  
-  
   getParameters(argv[1], &camera_params, &renderer_params, &mandelBox_params);
 
   int image_size = renderer_params.width * renderer_params.height;
@@ -100,18 +100,23 @@ int main(int argc, char** argv)
   d_colours = (vec3*)acc_malloc(image_size * sizeof(vec3));
   d_farPoints = (double*)acc_malloc(image_size * 3 * sizeof(double));
   d_pixData = (pixelData*)acc_malloc(image_size * sizeof(pixelData));
-
-
-  
+  d_distances = (double*)acc_malloc(image_size * sizeof(double));
 
   for (int i = 0; i < NUM_FRAMES; i++) {
-	init3D(&camera_params, &renderer_params);
+	  init3D(&camera_params, &renderer_params);
     renderFractal(camera_params, renderer_params, image);
-	char new_file_name[80];
-	genNewCamParams(camera_params, camStop[int(i*0.01)+1]);
-	sprintf(new_file_name, "image_%d.bmp", i);
-	saveBMP(new_file_name, image, renderer_params.width, renderer_params.height);
+  	printf("Done rendering frame %d... new lookAt = [%f,%f,%f]\n", i, newLookAt.x, newLookAt.y, newLookAt.z);
+    camera_params.camTarget[0] = newLookAt.x;
+    camera_params.camTarget[1] = newLookAt.y;
+    camera_params.camTarget[2] = newLookAt.z;
+    camera_params.camPos[0] += (newLookAt.x - camera_params.camPos[0])*0.01;
+    camera_params.camPos[1] += (newLookAt.y - camera_params.camPos[1])*0.01;
+    camera_params.camPos[2] += (newLookAt.z - camera_params.camPos[2])*0.01;
 
+  	char new_file_name[80];
+  	// genNewCamParams(camera_params, camStop[int(i*0.01)+1]);
+  	sprintf(new_file_name, "image_%d.bmp", i);
+  	saveBMP(new_file_name, image, renderer_params.width, renderer_params.height);
   }
   
   free(image);
@@ -120,6 +125,7 @@ int main(int argc, char** argv)
   acc_free(d_colours);
   acc_free(d_farPoints);
   acc_free(d_pixData);
+  acc_free(d_distances);
 
   return 0;
 }
