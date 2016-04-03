@@ -25,7 +25,7 @@
 #include "vector3d.h"
 
 #define SQR(x) ((x)*(x))
-#define COMPONENT_FOLD(x) { (x) = (fabs(x) <= 1) ? (x) : (((x) > 0) ? (2-(x)-(x)) : (-2-(x)-(x))); }
+#define COMPONENT_FOLD(x) { (x) = (fabs(x) <= 1) ? (x) : (((x) > 0) ? (2-(x)) : (-2-(x))); }
 
 #pragma acc declare copyin(mandelBox_params)
 extern MandelBoxParams mandelBox_params;
@@ -52,7 +52,7 @@ inline double MandelBoxDE(const vec3 &p0, const MandelBoxParams &params, double 
     if (r2 < rMin2)
     {
       MULT_SCALAR(p, p, rFixed2rMin2);
-      dfactor *= (rFixed2rMin2);
+      dfactor *= rFixed2rMin2;
     }
     else if (r2 < rFixed2) 
     {
@@ -63,7 +63,7 @@ inline double MandelBoxDE(const vec3 &p0, const MandelBoxParams &params, double 
     
     dfactor = dfactor * fabs(params.scale) + 1.0;      
     MULT_SCALAR(p, p, params.scale);
-    ADD_POINT(p,p,p0);
+    ADD_POINT(p, p, p0);
     i++;
   }
   
@@ -113,8 +113,8 @@ inline void normal(const vec3 & p, vec3 & normal)
 
 #pragma acc declare copyin(mandelBox_params)
 #pragma acc routine seq
-void rayMarch(const RenderParams &render_params, const vec3 &from, const vec3 &direction, double eps,
-        pixelData& pix_data, vec3& tests)
+void rayMarch(const RenderParams &render_params, const vec3 &from, vec3 &direction, double eps,
+        pixelData& pix_data)
 {
 
   double dist = 0.0;
@@ -138,9 +138,22 @@ void rayMarch(const RenderParams &render_params, const vec3 &from, const vec3 &d
     steps++;
   }
   while (dist > epsModified && totalDist <= render_params.maxDistance && steps < render_params.maxRaySteps);
-  tests.x = DE(from);
-  tests.y = DE(direction);
-  tests.z = totalDist;
+  // vec3 p1;
+  // VEC(p1, from.x, from.y, from.z);
+  // COMPONENT_FOLD(p1.x);
+  // COMPONENT_FOLD(p1.y);
+  // tests1.x = MAGNITUDE(from);
+  // tests1.y = p1.x;
+  // tests1.z = p1.y;
+
+  // tests2.x = DE(from);
+  // double r2;
+  // DOT_ASSIGN(r2, from);
+  // tests2.y = r2;
+  // vec3 a;
+  // VEC(a, 1.0, 1.0, 1.0);
+  // MULT_SCALAR(a,a, 5.0);
+  // tests2.z = a.z;
   
   if (dist < epsModified) 
   {

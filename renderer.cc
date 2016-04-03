@@ -32,7 +32,7 @@ extern double getTime();
 extern void   printProgress( double perc, double time );
 
 #pragma acc routine seq
-extern void rayMarch (const RenderParams &render_params, const vec3 &from, const vec3  &to, double eps, pixelData &pix_data, vec3 &tests);
+extern void rayMarch (const RenderParams &render_params, const vec3 &from, vec3  &to, double eps, pixelData &pix_data);
 
 #pragma acc routine seq
 extern void getColour(vec3 & colour, const pixelData &pixData, const RenderParams &render_params, const vec3 &from, const vec3 &direction);
@@ -60,7 +60,7 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
   pixelData* d_pixData = (pixelData*)acc_malloc(n * sizeof(pixelData));
 
   // [d_to.x, d_to.y, d_to.z]
-  const int NUM_TEST_VALS = 5;
+  const int NUM_TEST_VALS = 8;
   double* testResults = (double*)malloc(n * NUM_TEST_VALS * sizeof(double));
 
   printf("Starting data region...\n");
@@ -88,19 +88,23 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
         // 'renderer_params.maxDistance' looks good
 
         // render the pixel
-        vec3 tests;
+        // vec3 tests1;
+        // vec3 tests2;
         
         // d_to[k] is fine before hand, but within rayMarch it only sees []
-        const vec3 dir = d_to[k];
-        rayMarch(renderer_params, from, dir, eps, d_pixData[k], tests);
-        testResults[k*NUM_TEST_VALS] = (d_pixData[k].escaped) ? 1.0 : 0.0;
-        testResults[k*NUM_TEST_VALS + 2] = tests.x;
-        testResults[k*NUM_TEST_VALS + 3] = tests.y;
-        testResults[k*NUM_TEST_VALS + 4] = tests.z;
+        // const vec3 dir = d_to[k];
+        rayMarch(renderer_params, from, d_to[k], eps, d_pixData[k]);
+        // testResults[k*NUM_TEST_VALS    ] = (d_pixData[k].escaped) ? 1.0 : 0.0;
+        // testResults[k*NUM_TEST_VALS + 2] = tests1.x;
+        // testResults[k*NUM_TEST_VALS + 3] = tests1.y;
+        // testResults[k*NUM_TEST_VALS + 4] = tests1.z;
+        // testResults[k*NUM_TEST_VALS + 5] = tests2.x;
+        // testResults[k*NUM_TEST_VALS + 6] = tests2.y;
+        // testResults[k*NUM_TEST_VALS + 7] = tests2.z;
 
         // get the colour at this pixel
-        getColour(d_colours[k], d_pixData[k], renderer_params, from, dir);
-        testResults[k*NUM_TEST_VALS+1] = d_colours[k].x;
+        getColour(d_colours[k], d_pixData[k], renderer_params, from, d_to[k]);
+        // testResults[k*NUM_TEST_VALS+1] = d_colours[k].x;
 
         //save colour into texture
         image[k*3 + 2] = (unsigned char)(d_colours[k].x * 255);
@@ -111,14 +115,17 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
   }
 
   printf("\nRendering done\n");
-  for (int i = 0; i < n; i++) {
-      int k = i*NUM_TEST_VALS;
-      printf("[i = %4d, k = %d]", i, k);
-      printf("escaped  = %f | ", testResults[k]);
-      printf("colour.r = %f | ", testResults[k+1]);
-      printf("tests[0] (DE(from)) = %f | ", testResults[k+2]);
-      printf("tests[1] (DE(direction)) = %f | ", testResults[k+3]);
-      printf("tests[2] (tDist) = %f\n" , testResults[k+4]);
-  }
+  // for (int i = 0; i < n; i++) {
+  //     int k = i*NUM_TEST_VALS;
+  //     printf("[i = %4d] ", i);
+  //     printf("escaped  = %f | ", testResults[k]);
+  //     printf("colour.r = %f | ", testResults[k+1]);
+  //     printf("t0 (magnitude) = %f | ", testResults[k+2]);
+  //     printf("t1 (cf.x) = %f | ", testResults[k+3]);
+  //     printf("t2 (cf.y) = %f | " , testResults[k+4]);
+  //     printf("t3 (DE(from)) = %f | " , testResults[k+5]);
+  //     printf("t4 (dot(from))) = %f | " , testResults[k+6]);
+  //     printf("t5 (scalar.x) = %f\n" , testResults[k+7]);
+  // }
   printf("\n\n");
 }
