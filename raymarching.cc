@@ -100,9 +100,9 @@ inline void normal(const vec3 & p, vec3 & normal)
 
   VEC(e1, 0, 0, eps);
   ADD_POINT(t1, p, e1);
-  // x = DE(t1);
+  x = DE(t1);
   SUBTRACT_POINT(t1, p, e1);
-  // normal.z = DE(t1) - x;
+  normal.z = DE(t1) - x;
   
   // calculating either of the last two x1,x2 causes compiler warning:
   // 'No device symbol for address reference'
@@ -113,7 +113,7 @@ inline void normal(const vec3 & p, vec3 & normal)
 
 #pragma acc declare copyin(mandelBox_params)
 #pragma acc routine seq
-void rayMarch(const RenderParams &render_params, const vec3 &from, vec3 &direction, double eps,
+void rayMarch(const RenderParams &render_params, const vec3 &from, const vec3 &direction, double eps,
         pixelData& pix_data)
 {
 

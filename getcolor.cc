@@ -31,7 +31,6 @@ double CamLightMin = 0.3;// 0.48193;
 #define BASE_COLOR 1.0
 #define BACK_COLOR 0.4
 
-// #pragma acc routine seq
 inline void lighting(const vec3 &n, const vec3 &color, const vec3 &pos, const vec3 &direction,  vec3 &outV)
 {
   vec3 nn;
@@ -46,17 +45,22 @@ inline void lighting(const vec3 &n, const vec3 &color, const vec3 &pos, const ve
 
 #pragma acc declare copyin(CamLightW, CamLightMin)
 #pragma acc routine seq
-inline void getColour(vec3 &hitColor, const pixelData &pixData, const RenderParams &render_params, const vec3 &from, const vec3 &direction)
+inline void getColour(vec3 &hitColor, const pixelData &pixData, const RenderParams &render_params, const vec3 &from, const vec3 &direction, vec3 &test1, vec3 &test2)
 {
   VEC(hitColor, BASE_COLOR, BASE_COLOR, BASE_COLOR);
-
+  test1.x = from.x;
+  test1.y = from.y;
+  test1.z = from.z;
+  test2.x = direction.x;
+  test2.y = direction.y;
+  test2.z = direction.z;
   if (pixData.escaped == false) 
   {
     //apply lighting
     lighting(pixData.normal, hitColor, pixData.hit, direction, hitColor);
     
     //add normal based colouring
-    if(render_params.colourType == 0 || render_params.colourType == 1) {
+    if (render_params.colourType == 0 || render_params.colourType == 1) {
       MULT_POINTWISE(hitColor, hitColor, pixData.normal);
       ADD_SCALAR(hitColor, hitColor, 1.0);
       DIV_SCALAR(hitColor, hitColor, 2.0);
@@ -66,7 +70,7 @@ inline void getColour(vec3 &hitColor, const pixelData &pixData, const RenderPara
       clamp(hitColor, 0.0, 1.0);
       MULT_POINTWISE(hitColor, hitColor, hitColor)
     }
-    if(render_params.colourType == 1)
+    if (render_params.colourType == 1)
     {
      //"swap" colors
      double t = hitColor.x;
@@ -76,7 +80,6 @@ inline void getColour(vec3 &hitColor, const pixelData &pixData, const RenderPara
   }
   else {
       //we have the background colour
-  	  // VEC(hitColor, BACK_COLOR, BACK_COLOR, BACK_COLOR);
-      VEC(hitColor, 0.5, 0, 0);
+  	  VEC(hitColor, BACK_COLOR, BACK_COLOR, BACK_COLOR);
   }
 }

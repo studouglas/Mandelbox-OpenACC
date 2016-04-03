@@ -32,10 +32,10 @@ extern double getTime();
 extern void   printProgress( double perc, double time );
 
 #pragma acc routine seq
-extern void rayMarch (const RenderParams &render_params, const vec3 &from, vec3  &to, double eps, pixelData &pix_data);
+extern void rayMarch (const RenderParams &render_params, const vec3 &from, const vec3  &to, double eps, pixelData &pix_data);
 
 #pragma acc routine seq
-extern void getColour(vec3 & colour, const pixelData &pixData, const RenderParams &render_params, const vec3 &from, const vec3 &direction);
+extern void getColour(vec3 & colour, const pixelData &pixData, const RenderParams &render_params, const vec3 &from, const vec3 &direction, vec3 &t1, vec3 &t2);
 
 extern MandelBoxParams mandelBox_params;
 
@@ -60,7 +60,7 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
   pixelData* d_pixData = (pixelData*)acc_malloc(n * sizeof(pixelData));
 
   // [d_to.x, d_to.y, d_to.z]
-  const int NUM_TEST_VALS = 8;
+  const int NUM_TEST_VALS = 9;
   double* testResults = (double*)malloc(n * NUM_TEST_VALS * sizeof(double));
 
   printf("Starting data region...\n");
@@ -82,29 +82,33 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
         
        	SUBTRACT_DARRS(d_to[k], (&(d_farPoints[k*3])), camera_params.camPos);
         NORMALIZE(d_to[k]);
-        // 'd_to' seems good
+        // 'd_to' seems good, but isn't const!
         // 'from' vector seems good
         // 'eps' seems good
         // 'renderer_params.maxDistance' looks good
 
         // render the pixel
-        // vec3 tests1;
-        // vec3 tests2;
-        
+        vec3 tests1;
+        vec3 tests2;
+    
+
+        // vec3 t;
+        // VEC(t, d_to[k].x, d_to[k].y, d_to[k].z);
         // d_to[k] is fine before hand, but within rayMarch it only sees []
         // const vec3 dir = d_to[k];
         rayMarch(renderer_params, from, d_to[k], eps, d_pixData[k]);
-        // testResults[k*NUM_TEST_VALS    ] = (d_pixData[k].escaped) ? 1.0 : 0.0;
-        // testResults[k*NUM_TEST_VALS + 2] = tests1.x;
-        // testResults[k*NUM_TEST_VALS + 3] = tests1.y;
-        // testResults[k*NUM_TEST_VALS + 4] = tests1.z;
-        // testResults[k*NUM_TEST_VALS + 5] = tests2.x;
-        // testResults[k*NUM_TEST_VALS + 6] = tests2.y;
-        // testResults[k*NUM_TEST_VALS + 7] = tests2.z;
 
         // get the colour at this pixel
-        getColour(d_colours[k], d_pixData[k], renderer_params, from, d_to[k]);
-        // testResults[k*NUM_TEST_VALS+1] = d_colours[k].x;
+        getColour(d_colours[k], d_pixData[k], renderer_params, from, d_to[k], tests1, tests2);
+        testResults[k*NUM_TEST_VALS  ] = tests1.x;
+        testResults[k*NUM_TEST_VALS+1] = tests1.y;
+        testResults[k*NUM_TEST_VALS+2] = tests1.z;
+        testResults[k*NUM_TEST_VALS+3] = tests2.x;
+        testResults[k*NUM_TEST_VALS+4] = tests2.y;
+        testResults[k*NUM_TEST_VALS+5] = tests2.z;
+        testResults[k*NUM_TEST_VALS+6] = d_to[k].x;
+        testResults[k*NUM_TEST_VALS+7] = d_to[k].y;
+        testResults[k*NUM_TEST_VALS+8] = d_to[k].z;
 
         //save colour into texture
         image[k*3 + 2] = (unsigned char)(d_colours[k].x * 255);
@@ -118,14 +122,9 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
   // for (int i = 0; i < n; i++) {
   //     int k = i*NUM_TEST_VALS;
   //     printf("[i = %4d] ", i);
-  //     printf("escaped  = %f | ", testResults[k]);
-  //     printf("colour.r = %f | ", testResults[k+1]);
-  //     printf("t0 (magnitude) = %f | ", testResults[k+2]);
-  //     printf("t1 (cf.x) = %f | ", testResults[k+3]);
-  //     printf("t2 (cf.y) = %f | " , testResults[k+4]);
-  //     printf("t3 (DE(from)) = %f | " , testResults[k+5]);
-  //     printf("t4 (dot(from))) = %f | " , testResults[k+6]);
-  //     printf("t5 (scalar.x) = %f\n" , testResults[k+7]);
+  //     printf("from = [%f,%f,%f] | ", testResults[k], testResults[k+1], testResults[k+2]);
+  //     printf("dir = [%f,%f,%f] | ", testResults[k+3], testResults[k+4], testResults[k+5]);
+  //     printf("d_to[k] = [%f,%f,%f]\n " , testResults[k+6],testResults[k+7],testResults[k+8]);
   // }
   printf("\n\n");
 }
