@@ -40,11 +40,21 @@ void init3D       (CameraParams *camera_params, const RenderParams *renderer_par
 void renderFractal(const CameraParams camera_params, const RenderParams renderer_params, unsigned char* image);
 void saveBMP      (const char* filename, const unsigned char* image, int width, int height);
 
-#define NUM_FRAMES 45
+#define NUM_FRAMES 180
+
+void genNewRendParams(RenderParams &curRend, RenderParams &nextRend){
+
+}
+
+void genNewCamParams(CameraParams &curCam, CameraParams &nextCam){
+	curCam.camPos[0] += (nextCam.camPos[0] - curCam.camPos[0])*0.01;
+	curCam.camPos[1] += (nextCam.camPos[1] - curCam.camPos[1])*0.01;
+	curCam.camPos[2] += (nextCam.camPos[2] - curCam.camPos[2])*0.01;
+}
+
 
 #pragma acc declare copyin(mandelBox_params)
 MandelBoxParams mandelBox_params;
-
 
 vec3* d_to;
 vec3* d_colours;
@@ -65,6 +75,22 @@ int main(int argc, char** argv)
   CameraParams    camera_params;
   RenderParams    renderer_params;
   
+  CameraParams camStop[3];
+  //Stop 0
+  camStop[0].camPos[0] = 10;
+  camStop[0].camPos[1] = 4;
+  camStop[0].camPos[2] = 8;
+  //Stop 1
+  camStop[1].camPos[0] = 8;
+  camStop[1].camPos[1] = 5;
+  camStop[1].camPos[2] = 7;
+  //Stop 2
+  camStop[2].camPos[0] = 6;
+  camStop[2].camPos[1] = 4;
+  camStop[2].camPos[2] = 5;
+  
+  
+  
   getParameters(argv[1], &camera_params, &renderer_params, &mandelBox_params);
 
   int image_size = renderer_params.width * renderer_params.height;
@@ -76,14 +102,13 @@ int main(int argc, char** argv)
   d_pixData = (pixelData*)acc_malloc(image_size * sizeof(pixelData));
 
 
-  init3D(&camera_params, &renderer_params);
+  
 
   for (int i = 0; i < NUM_FRAMES; i++) {
+	init3D(&camera_params, &renderer_params);
     renderFractal(camera_params, renderer_params, image);
 	char new_file_name[80];
-	camera_params.camPos[0] -= 0.2;
-	camera_params.camPos[1] -= 0.1;
-	camera_params.camPos[2] -= 0.1;
+	genNewCamParams(camera_params, camStop[int(i*0.01)+1]);
 	sprintf(new_file_name, "image_%d.bmp", i);
 	saveBMP(new_file_name, image, renderer_params.width, renderer_params.height);
   }
