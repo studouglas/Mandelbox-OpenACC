@@ -23,6 +23,9 @@
 #include "camera.h"
 #include "renderer.h"
 #include "mandelbox.h"
+#include "openacc.h"
+#include "vector3d.h"
+#include "color.h"
 
 void getParameters(char *filename, CameraParams *camera_params, RenderParams *renderer_params,
 		   MandelBoxParams *mandelBox_paramsP);
@@ -35,6 +38,13 @@ void saveBMP      (const char* filename, const unsigned char* image, int width, 
 #pragma acc declare copyin(mandelBox_params)
 MandelBoxParams mandelBox_params;
 
+
+vec3* d_to;
+vec3* d_colours;
+double* d_farPoints;
+pixelData* d_pixData;
+#pragma acc declare deviceptr(d_to, d_colours, d_farPoints, d_pixData)
+
 int main(int argc, char** argv)
 {
   CameraParams    camera_params;
@@ -45,6 +55,12 @@ int main(int argc, char** argv)
   int image_size = renderer_params.width * renderer_params.height;
   unsigned char *image = (unsigned char*)malloc(3*image_size*sizeof(unsigned char));
 
+  d_to = (vec3*)acc_malloc(image_size * sizeof(vec3));
+  d_colours = (vec3*)acc_malloc(image_size * sizeof(vec3));
+  d_farPoints = (double*)acc_malloc(image_size * 3 * sizeof(double));
+  d_pixData = (pixelData*)acc_malloc(image_size * sizeof(pixelData));
+
+
   init3D(&camera_params, &renderer_params);
 
   for (int i = 0; i < NUM_FRAMES; i++) {
@@ -53,6 +69,11 @@ int main(int argc, char** argv)
   saveBMP(renderer_params.file_name, image, renderer_params.width, renderer_params.height);
   
   free(image);
+
+  acc_free(d_to);
+  acc_free(d_colours);
+  acc_free(d_farPoints);
+  acc_free(d_pixData);
 
   return 0;
 }

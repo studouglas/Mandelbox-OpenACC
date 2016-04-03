@@ -45,15 +45,10 @@ inline void lighting(const vec3 &n, const vec3 &color, const vec3 &pos, const ve
 
 #pragma acc declare copyin(CamLightW, CamLightMin)
 #pragma acc routine seq
-inline void getColour(vec3 &hitColor, const pixelData &pixData, const RenderParams &render_params, const vec3 &from, const vec3 &direction, vec3 &test1, vec3 &test2)
+inline void getColour(vec3 &hitColor, const pixelData &pixData, const RenderParams &render_params, const vec3 &from, const vec3 &direction)
 {
   VEC(hitColor, BASE_COLOR, BASE_COLOR, BASE_COLOR);
-  test1.x = from.x;
-  test1.y = from.y;
-  test1.z = from.z;
-  test2.x = direction.x;
-  test2.y = direction.y;
-  test2.z = direction.z;
+
   if (pixData.escaped == false) 
   {
     //apply lighting
@@ -78,8 +73,9 @@ inline void getColour(vec3 &hitColor, const pixelData &pixData, const RenderPara
      hitColor.z = t;
     }
   }
-  else {
-      //we have the background colour
-  	  VEC(hitColor, BACK_COLOR, BACK_COLOR, BACK_COLOR);
+  else 
+  {
+    //we have the background colour
+  	VEC(hitColor, BACK_COLOR, BACK_COLOR, BACK_COLOR);
   }
 }
