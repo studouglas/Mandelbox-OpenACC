@@ -58,13 +58,13 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
   // const int NUM_TEST_VALS = 9;
   // double* testResults = (double*)malloc(n * NUM_TEST_VALS * sizeof(double));
 
-  printf("Starting data region...\n");
+  //printf("Starting data region...\n");
   // #pragma acc data copy(testResults[:n*NUM_TEST_VALS])
   #pragma acc data copyin(camera_params, renderer_params, eps, from)
   #pragma acc data deviceptr(d_to, d_colours, d_farPoints, d_pixData)
   #pragma acc data copyout(image[:n*3])
   {
-    printf("Starting parallel loop...\n");
+    //printf("Starting parallel loop...\n");
     #pragma acc kernels loop independent collapse(2)
     for(int j = 0; j < height; j++)
     {
