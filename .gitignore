@@ -1,6 +1,9 @@
 # Executable
 mandelbox
 
+*.bmp
+*.mpg
+
 # Compiled Object files
 *.slo
 *.lo
