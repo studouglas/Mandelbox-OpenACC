@@ -27,7 +27,7 @@
 #include "color.h"
 #include "openacc.h"
 
-//used for making directory to hold all generated images
+//#include <thread>
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h> 
@@ -40,11 +40,7 @@ void init3D       (CameraParams *camera_params, const RenderParams *renderer_par
 void renderFractal(const CameraParams camera_params, const RenderParams renderer_params, unsigned char* image);
 void saveBMP      (const char* filename, const unsigned char* image, int width, int height);
 
-#define NUM_FRAMES 180
-
-void genNewRendParams(RenderParams &curRend, RenderParams &nextRend){
-
-}
+#define NUM_FRAMES 10
 
 void genNewCamParams(CameraParams &curCam, CameraParams &nextCam){
 	curCam.camPos[0] += (nextCam.camPos[0] - curCam.camPos[0])*0.01;
@@ -77,24 +73,11 @@ int main(int argc, char** argv)
   CameraParams    camera_params;
   RenderParams    renderer_params;
   
-  CameraParams camStop[3];
-  //Stop 0
-  camStop[0].camPos[0] = 10;
-  camStop[0].camPos[1] = 4;
-  camStop[0].camPos[2] = 8;
-  //Stop 1
-  camStop[1].camPos[0] = 8;
-  camStop[1].camPos[1] = 5;
-  camStop[1].camPos[2] = 7;
-  //Stop 2
-  camStop[2].camPos[0] = 6;
-  camStop[2].camPos[1] = 4;
-  camStop[2].camPos[2] = 5;
-  
   getParameters(argv[1], &camera_params, &renderer_params, &mandelBox_params);
 
   int image_size = renderer_params.width * renderer_params.height;
-  unsigned char *image = (unsigned char*)malloc(3*image_size*sizeof(unsigned char));
+  unsigned char *image1 = (unsigned char*)malloc(3*image_size*sizeof(unsigned char));
+  unsigned char *image2 = (unsigned char*)malloc(3*image_size*sizeof(unsigned char));
 
   d_to = (vec3*)acc_malloc(image_size * sizeof(vec3));
   d_colours = (vec3*)acc_malloc(image_size * sizeof(vec3));
@@ -102,24 +85,44 @@ int main(int argc, char** argv)
   d_pixData = (pixelData*)acc_malloc(image_size * sizeof(pixelData));
   d_distances = (double*)acc_malloc(image_size * sizeof(double));
 
-  for (int i = 0; i < NUM_FRAMES; i++) {
-	  init3D(&camera_params, &renderer_params);
-    renderFractal(camera_params, renderer_params, image);
-  	printf("Done rendering frame %d... new lookAt = [%f,%f,%f]\n", i, newLookAt.x, newLookAt.y, newLookAt.z);
-    camera_params.camTarget[0] = newLookAt.x;
-    camera_params.camTarget[1] = newLookAt.y;
-    camera_params.camTarget[2] = newLookAt.z;
-    camera_params.camPos[0] += (newLookAt.x - camera_params.camPos[0])*0.01;
-    camera_params.camPos[1] += (newLookAt.y - camera_params.camPos[1])*0.01;
-    camera_params.camPos[2] += (newLookAt.z - camera_params.camPos[2])*0.01;
+  vec3 newLookAtDest;
+//  std::thread writeBMP;
+  unsigned char *currImage;
+  char new_file_name[80];
 
-  	char new_file_name[80];
-  	// genNewCamParams(camera_params, camStop[int(i*0.01)+1]);
-  	sprintf(new_file_name, "image_%d.bmp", i);
-  	saveBMP(new_file_name, image, renderer_params.width, renderer_params.height);
+  for (int i = 0; i < NUM_FRAMES; i++) {
+	  if (i % 2 == 0) {
+      currImage = image1;  
+    } else {
+      currImage = image2;
+    }
+
+    init3D(&camera_params, &renderer_params);
+    renderFractal(camera_params, renderer_params, currImage);
+  	printf("Done rendering frame %d... new lookAt = [%f,%f,%f]\n", i, newLookAt.x, newLookAt.y, newLookAt.z);
+    
+    if (i % 10 == 0) {
+      newLookAtDest = newLookAt;
+    }
+    
+    camera_params.camTarget[0] += (newLookAtDest.x - camera_params.camTarget[0])*0.1;
+    camera_params.camTarget[1] += (newLookAtDest.y - camera_params.camTarget[1])*0.1;
+    camera_params.camTarget[2] += (newLookAtDest.z - camera_params.camTarget[2])*0.1;
+
+    // move towards point
+    camera_params.camPos[0] += (newLookAtDest.x - camera_params.camPos[0])*0.01;
+    camera_params.camPos[1] += (newLookAtDest.y - camera_params.camPos[1])*0.01;
+    camera_params.camPos[2] += (newLookAtDest.z - camera_params.camPos[2])*0.01;
+
+    if (i != 0) {
+  //    writeBMP.join();
+    }
+    sprintf(new_file_name, "image_%d.bmp", i);
+   // writeBMP = std::thread(saveBMP, new_file_name, currImage, renderer_params.width, renderer_params.height);  
+     saveBMP(new_file_name, currImage, renderer_params.width, renderer_params.height);  
   }
-  
-  free(image);
+  free(image1);
+  free(image2);
 
   acc_free(d_to);
   acc_free(d_colours);
