@@ -45,26 +45,20 @@ extern pixelData* d_pixData;
 
 void renderFractal(const CameraParams camera_params, const RenderParams renderer_params, unsigned char* image)
 {
-  const double eps = pow(10.0, renderer_params.detail); 
   vec3 fromTemp;
-  VEC(fromTemp, camera_params.camPos[0], camera_params.camPos[1], camera_params.camPos[2]);
+  VEC(fromTemp, camera_params.camPos[0], camera_params.camPos[1], camera_params.camPos[2]); 
   const vec3 from = fromTemp;
-
+  
+  const double eps = pow(10.0, renderer_params.detail); 
+  
   const int height = renderer_params.height;
   const int width  = renderer_params.width;
-  const int n = width*height;
+  const int n = width * height;
 
-  // [d_to.x, d_to.y, d_to.z]
-  // const int NUM_TEST_VALS = 9;
-  // double* testResults = (double*)malloc(n * NUM_TEST_VALS * sizeof(double));
-
-  //printf("Starting data region...\n");
-  // #pragma acc data copy(testResults[:n*NUM_TEST_VALS])
   #pragma acc data copyin(camera_params, renderer_params, eps, from)
   #pragma acc data deviceptr(d_to, d_colours, d_farPoints, d_pixData)
   #pragma acc data copyout(image[:n*3])
   {
-    //printf("Starting parallel loop...\n");
     #pragma acc kernels loop independent collapse(2)
     for(int j = 0; j < height; j++)
     {
@@ -77,14 +71,7 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
        	SUBTRACT_DARRS(d_to[k], (&(d_farPoints[k*3])), camera_params.camPos);
         NORMALIZE(d_to[k]);
         
-        // 'd_to' seems good, but isn't const!
-        // 'from' vector seems good
-        // 'eps' seems good
-        // 'renderer_params.maxDistance' looks good
-
         rayMarch(renderer_params, from, d_to[k], eps, d_pixData[k]);
-
-        // get the colour at this pixel
         getColour(d_colours[k], d_pixData[k], renderer_params, from, d_to[k]);
 
         //save colour into texture
@@ -94,13 +81,5 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
       }
     }
   }
-
-  printf("\nRendering done\n");
-  // for (int i = 0; i < n; i++) {
-  //   int k = i*3;
-  //   if (image[k] != 102 && image[k+1] != 102 && image[k+2] != 102) {
-  //     printf("image[%3d] = [%3d,%3d,%3d]\n", i, image[k], image[k+1], image[k+2]);
-  //   }
-  // }
-  printf("\n\n");
+  
 }

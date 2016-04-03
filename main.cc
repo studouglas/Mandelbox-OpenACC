@@ -111,6 +111,7 @@ int main(int argc, char** argv)
 	genNewCamParams(camera_params, camStop[int(i*0.01)+1]);
 	sprintf(new_file_name, "image_%d.bmp", i);
 	saveBMP(new_file_name, image, renderer_params.width, renderer_params.height);
+
   }
   
   free(image);
