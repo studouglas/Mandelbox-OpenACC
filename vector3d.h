@@ -9,7 +9,7 @@
 
 typedef struct 
 {
-  double x, y, z;
+  float x, y, z;
 }  vec3;
 
 #define SET_POINT(p,v) { p.x=v[0]; p.y=v[1]; p.z=v[2]; }
@@ -32,9 +32,9 @@ typedef struct
 }
 
 #define NORMALIZE(p) {\
-    double fMag = ( p.x*p.x + p.y*p.y + p.z*p.z );\
+    float fMag = ( p.x*p.x + p.y*p.y + p.z*p.z );\
     if (fMag != 0){\
-		double fMult = 1.0/sqrt(fMag);\
+		float fMult = 1.0/sqrtf(fMag);\
 		p.x *= fMult;\
 		p.y *= fMult;\
 		p.z *= fMult;\
@@ -53,7 +53,7 @@ typedef struct
   	p.z = v.z + s; \
 }
 
-#define MAGNITUDE(p) ({ sqrt( p.x*p.x + p.y*p.y + p.z*p.z ); })
+#define MAGNITUDE(p) ({ sqrtf( p.x*p.x + p.y*p.y + p.z*p.z ); })
 
 #define DOT_ASSIGN(d,p) {  d=( p.x*p.x + p.y*p.y + p.z*p.z ); }
 #define DOT(p,q) { (p.x*q.x + p.y*q.y + p.z*q.z) }
@@ -70,19 +70,19 @@ typedef struct
 }
 
 #define DIV_SCALAR(p,v,s) {\
-	double fInv = 1.0 / s;\
+	float fInv = 1.0 / s;\
 	p.x = v.x * fInv;\
 	p.y = v.y * fInv;\
 	p.z = v.z * fInv;\
 }
 
-inline double clamp(double d, double min, double max) 
+inline float clamp(float d, float min, float max) 
 {
-  const double t = d < min ? min : d;
+  const float t = d < min ? min : d;
   return t > max ? max : t;
 }
 
-inline void clamp(vec3 &v, double min, double max) 
+inline void clamp(vec3 &v, float min, float max) 
 {
   v.x = clamp(v.x,min,max);
   v.y = clamp(v.y,min,max);

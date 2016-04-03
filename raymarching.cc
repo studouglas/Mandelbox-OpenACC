@@ -25,20 +25,20 @@
 #include "vector3d.h"
 
 #define SQR(x) ((x)*(x))
-#define COMPONENT_FOLD(x) { (x) = (fabs(x) <= 1) ? (x) : (((x) > 0) ? (2-(x)) : (-2-(x))); }
+#define COMPONENT_FOLD(x) { (x) = (fabsf(x) <= 1) ? (x) : (((x) > 0) ? (2-(x)) : (-2-(x))); }
 
 #pragma acc declare copyin(mandelBox_params)
 extern MandelBoxParams mandelBox_params;
 
-inline double MandelBoxDE(const vec3 &p0, const MandelBoxParams &params, double c1, double c2)
+inline float MandelBoxDE(const vec3 &p0, const MandelBoxParams &params, float c1, float c2)
 {
   vec3 p = p0;
-  double rMin2   = SQR(params.rMin);
-  double rFixed2 = SQR(params.rFixed);
-  double escape  = SQR(params.escape_time);
-  double dfactor = 1; 
-  double r2      = -1;
-  const double rFixed2rMin2 = rFixed2/rMin2;
+  float rMin2   = SQR(params.rMin);
+  float rFixed2 = SQR(params.rFixed);
+  float escape  = SQR(params.escape_time);
+  float dfactor = 1; 
+  float r2      = -1;
+  const float rFixed2rMin2 = rFixed2/rMin2;
 
   int i = 0;
   while (i < params.num_iter && r2 < escape)
@@ -56,12 +56,12 @@ inline double MandelBoxDE(const vec3 &p0, const MandelBoxParams &params, double 
     }
     else if (r2 < rFixed2) 
     {
-      const double t = (rFixed2/r2);
+      const float t = (rFixed2/r2);
       MULT_SCALAR(p, p, (rFixed2/r2));
       dfactor *= t;
     }
     
-    dfactor = dfactor * fabs(params.scale) + 1.0;      
+    dfactor = dfactor * fabsf(params.scale) + 1.0;      
     MULT_SCALAR(p, p, params.scale);
     ADD_POINT(p, p, p0);
     i++;
@@ -70,21 +70,22 @@ inline double MandelBoxDE(const vec3 &p0, const MandelBoxParams &params, double 
   return  (MAGNITUDE(p) - c1) / dfactor - c2;
 }
 
-inline double DE(const vec3 &p)
+inline float DE(const vec3 &p)
 {
-  double c1 = fabs(mandelBox_params.scale - 1.0);
-  double c2 = pow(fabs(mandelBox_params.scale), 1 - mandelBox_params.num_iter);
-  double d = MandelBoxDE(p, mandelBox_params, c1, c2);
+  float c1 = fabsf(mandelBox_params.scale - 1.0);
+  float c2 = pow(fabsf(mandelBox_params.scale), 1 - mandelBox_params.num_iter);
+  float d = MandelBoxDE(p, mandelBox_params, c1, c2);
   return d;
 }
 
 inline void normal(const vec3 & p, vec3 & normal)
 {
   // compute the normal at p
-  const double sqrt_mach_eps = 1.4901e-08;
-  double eps = MAX( MAGNITUDE(p), 1.0 ) * sqrt_mach_eps;
+  // const float sqrt_mach_eps = 1.4901e-08;
+  const float sqrt_mach_eps = 2.44e-04;
+  float eps = MAX( MAGNITUDE(p), 1.0 ) * sqrt_mach_eps;
   vec3 t1, e1;  
-  double x;
+  float x;
 
   VEC(e1, eps, 0, 0);
   ADD_POINT(t1, p, e1);
@@ -113,15 +114,15 @@ inline void normal(const vec3 & p, vec3 & normal)
 
 #pragma acc declare copyin(mandelBox_params)
 #pragma acc routine seq
-void rayMarch(const RenderParams &render_params, const vec3 &from, const vec3 &direction, double eps,
+void rayMarch(const RenderParams &render_params, const vec3 &from, const vec3 &direction, float eps,
         pixelData& pix_data)
 {
 
-  double dist = 0.0;
-  double totalDist = 0.0;
+  float dist = 0.0;
+  float totalDist = 0.0;
   
   // We will adjust the minimum distance based on the current zoom
-  double epsModified = 0.0;
+  float epsModified = 0.0;
   
   int steps = 0;
   vec3 p;

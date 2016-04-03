@@ -29,21 +29,21 @@
 #include "renderer.h"
 
 
-void   LoadIdentity   (double *matrix);
-void   Perspective    (double fov, double aspect, double zNear, double zFar, double *projMatrix);
-void   Frustum        (double left, double right, double bottom, double top, double znear, double zfar, double *matrix);
-void   LookAt         (double *eye, double *target, double *up, double *modelMatrix);
-double LengthVector   (double *vector);
-void   NormalizeVector(double *vector);
-void   ComputeNormalOfPlane(double *normal, double *v1, double *v2);
-void   MultiplyMatrices(double *result, const double *matrix1, const double *matrix2);
-void   MultiplyMatrixByVector(double *resultvector, const double *matrix, double *pvector);
-int    InvertMatrix(double *m, double *out);
-void   Translate(double *result, double x, double y, double z);
-int    UnProject(double winX, double winY, double winZ, const double *model, 
-                 const double *proj, const int *view, double *obj);
+void   LoadIdentity   (float *matrix);
+void   Perspective    (float fov, float aspect, float zNear, float zFar, float *projMatrix);
+void   Frustum        (float left, float right, float bottom, float top, float znear, float zfar, float *matrix);
+void   LookAt         (float *eye, float *target, float *up, float *modelMatrix);
+float LengthVector   (float *vector);
+void   NormalizeVector(float *vector);
+void   ComputeNormalOfPlane(float *normal, float *v1, float *v2);
+void   MultiplyMatrices(float *result, const float *matrix1, const float *matrix2);
+void   MultiplyMatrixByVector(float *resultvector, const float *matrix, float *pvector);
+int    InvertMatrix(float *m, float *out);
+void   Translate(float *result, float x, float y, float z);
+int    UnProject(float winX, float winY, float winZ, const float *model, 
+                 const float *proj, const int *view, float *obj);
 
 #pragma acc routine seq
-int    UnProject(double winX, double winY, const CameraParams & camP, double *obj);
+int    UnProject(float winX, float winY, const CameraParams & camP, float *obj);
 
 #endif

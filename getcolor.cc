@@ -35,8 +35,8 @@ inline void lighting(const vec3 &n, const vec3 &color, const vec3 &pos, const ve
 {
   vec3 nn;
   SUBTRACT_SCALAR(nn, n, 1.0);
-  double d = DOT(direction, nn);
-  double ambient = MAX(CAM_LIGHT_MIN, d) * CAM_LIGHT_W;
+  float d = DOT(direction, nn);
+  float ambient = MAX(CAM_LIGHT_MIN, d) * CAM_LIGHT_W;
   vec3 camLight;
   VEC(camLight, CAM_LIGHT, CAM_LIGHT, CAM_LIGHT);
   MULT_SCALAR(nn, camLight, ambient);
@@ -67,7 +67,7 @@ inline void getColour(vec3 &hitColor, const pixelData &pixData, const RenderPara
     if (render_params.colourType == 1)
     {
      //"swap" colors
-     double t = hitColor.x;
+     float t = hitColor.x;
      hitColor.x = hitColor.z;
      hitColor.z = t;
     }

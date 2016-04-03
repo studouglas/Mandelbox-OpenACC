@@ -48,7 +48,7 @@ MandelBoxParams mandelBox_params;
 
 vec3* d_to;
 vec3* d_colours;
-double* d_farPoints;
+float* d_farPoints;
 pixelData* d_pixData;
 #pragma acc declare deviceptr(d_to, d_colours, d_farPoints, d_pixData)
 
@@ -72,7 +72,7 @@ int main(int argc, char** argv)
 
   d_to = (vec3*)acc_malloc(image_size * sizeof(vec3));
   d_colours = (vec3*)acc_malloc(image_size * sizeof(vec3));
-  d_farPoints = (double*)acc_malloc(image_size * 3 * sizeof(double));
+  d_farPoints = (float*)acc_malloc(image_size * 3 * sizeof(float));
   d_pixData = (pixelData*)acc_malloc(image_size * sizeof(pixelData));
 
 

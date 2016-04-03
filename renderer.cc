@@ -20,19 +20,19 @@
 */
 #include <stdio.h>
 #include <stdlib.h>
+#include "openacc.h"
 
 #include "color.h"
 #include "mandelbox.h"
 #include "camera.h"
 #include "vector3d.h"
 #include "3d.h"
-#include "openacc.h"
 
-extern double getTime();
-extern void   printProgress( double perc, double time );
+extern float getTime();
+extern void   printProgress( float perc, float time );
 
 #pragma acc routine seq
-extern void rayMarch (const RenderParams &render_params, const vec3 &from, const vec3  &to, double eps, pixelData &pix_data);
+extern void rayMarch (const RenderParams &render_params, const vec3 &from, const vec3  &to, float eps, pixelData &pix_data);
 
 #pragma acc routine seq
 extern void getColour(vec3 & colour, const pixelData &pixData, const RenderParams &render_params, const vec3 &from, const vec3 &direction);
@@ -40,7 +40,7 @@ extern void getColour(vec3 & colour, const pixelData &pixData, const RenderParam
 extern MandelBoxParams mandelBox_params;
 extern vec3* d_to;
 extern vec3* d_colours;
-extern double* d_farPoints;
+extern float* d_farPoints;
 extern pixelData* d_pixData;
 
 void renderFractal(const CameraParams camera_params, const RenderParams renderer_params, unsigned char* image)
@@ -49,7 +49,7 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
   VEC(fromTemp, camera_params.camPos[0], camera_params.camPos[1], camera_params.camPos[2]); 
   const vec3 from = fromTemp;
   
-  const double eps = pow(10.0, renderer_params.detail); 
+  const float eps = pow(10.0, renderer_params.detail); 
   
   const int height = renderer_params.height;
   const int width  = renderer_params.width;

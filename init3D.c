@@ -36,13 +36,13 @@ void init3D(CameraParams *camP, const RenderParams *renP)
   LoadIdentity(camP->matProjection);
   
   //setting up camera lense
-  Perspective((65*camP->fov), ((double)renP->width)/((double)renP->height), NEAR, FAR, camP->matProjection);
+  Perspective((65*camP->fov), ((float)renP->width)/((float)renP->height), NEAR, FAR, camP->matProjection);
   
   //setting up model view matrix
   LookAt(camP->camPos, camP->camTarget, camP->camUp, camP->matModelView);
 
   //setting up the inverse(projection x model) matrix
-  double temp[16];
+  float temp[16];
   MultiplyMatrices(temp, camP->matProjection, camP->matModelView);
   //Now compute the inverse of matrix A
   InvertMatrix(temp, camP->matInvProjModel);

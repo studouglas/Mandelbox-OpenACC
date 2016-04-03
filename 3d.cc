@@ -33,14 +33,14 @@
 
 //---------------------------------------------------------------------------------------------
 //when projection and modelview matricies are static (computed only once, and camera does not mover)
-int UnProject(double winX, double winY, const CameraParams& camP, double *obj)
+int UnProject(float winX, float winY, const CameraParams& camP, float *obj)
 {
   //Transformation vectors
-  double in[4], out[4];
+  float in[4], out[4];
   
   //Transformation of normalized coordinates between -1 and 1
-  in[0]=(winX-(double)(camP.viewport[0]))/(double)(camP.viewport[2])*2.0-1.0;
-  in[1]=(winY-(double)(camP.viewport[1]))/(double)(camP.viewport[3])*2.0-1.0;
+  in[0]=(winX-(float)(camP.viewport[0]))/(float)(camP.viewport[2])*2.0-1.0;
+  in[1]=(winY-(float)(camP.viewport[1]))/(float)(camP.viewport[3])*2.0-1.0;
   in[2]=2.0-1.0;
   in[3]=1.0;
   
@@ -58,7 +58,7 @@ int UnProject(double winX, double winY, const CameraParams& camP, double *obj)
 }
 
 
-void LoadIdentity(double *matrix){
+void LoadIdentity(float *matrix){
   matrix[0] = 1.0;
   matrix[1] = 0.0;
   matrix[2] = 0.0;
@@ -81,9 +81,9 @@ void LoadIdentity(double *matrix){
 }
 
 //----------------------------------------------------------------------------------------
-void Perspective(double fov, double aspect, double zNear, double zFar, double *projMat)
+void Perspective(float fov, float aspect, float zNear, float zFar, float *projMat)
 {
-  double ymax, xmax;
+  float ymax, xmax;
   
   ymax = zNear * tan(fov * PI / 360.0);
   //ymin = -ymax;
@@ -92,9 +92,9 @@ void Perspective(double fov, double aspect, double zNear, double zFar, double *p
   Frustum(-xmax, xmax, -ymax, ymax, zNear, zFar, projMat);
 }
 
-void Frustum(double left, double right, double bottom, double top, double znear, double zfar, double *matrix)
+void Frustum(float left, float right, float bottom, float top, float znear, float zfar, float *matrix)
 {
-  double temp, temp2, temp3, temp4;
+  float temp, temp2, temp3, temp4;
   temp = 2.0 * znear;
   temp2 = right - left;
   temp3 = top - bottom;
@@ -117,10 +117,10 @@ void Frustum(double left, double right, double bottom, double top, double znear,
   matrix[15] = 0.0;
 }
 //----------------------------------------------------------------------
-void LookAt(double *eye, double *target, double *upV, double *modelMatrix)
+void LookAt(float *eye, float *target, float *upV, float *modelMatrix)
 {
-  double forward[3], side[3], up[3];
-  double matrix2[16], resultMatrix[16];
+  float forward[3], side[3], up[3];
+  float matrix2[16], resultMatrix[16];
   //------------------
   forward[0] = target[0] - eye[0];
   forward[1] = target[1] - eye[1];
@@ -155,26 +155,26 @@ void LookAt(double *eye, double *target, double *upV, double *modelMatrix)
   MultiplyMatrices(resultMatrix, modelMatrix, matrix2);
   Translate(resultMatrix, -eye[0], -eye[1], -eye[2]);
   //------------------
-  memcpy(modelMatrix, resultMatrix, 16*sizeof(double));
+  memcpy(modelMatrix, resultMatrix, 16*sizeof(float));
 }
 
 
-void NormalizeVector(double *v)
+void NormalizeVector(float *v)
 {
-  double m = 1.0/sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);
+  float m = 1.0/sqrtf(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);
   v[0] *= m;
   v[1] *= m;
   v[2] *= m;
 }
 
-void ComputeNormalOfPlane(double *normal, double *v1, double *v2)
+void ComputeNormalOfPlane(float *normal, float *v1, float *v2)
 {
   normal[0] = v1[1] * v2[2] - v1[2] * v2[1];
   normal[1] = v1[2] * v2[0] - v1[0] * v2[2];
   normal[2] = v1[0] * v2[1] - v1[1] * v2[0];
 }
 
-void MultiplyMatrices(double *result, const double *matrix1, const double *matrix2)
+void MultiplyMatrices(float *result, const float *matrix1, const float *matrix2)
 {
   result[0]=matrix1[0]*matrix2[0]+
     matrix1[4]*matrix2[1]+
@@ -242,7 +242,7 @@ void MultiplyMatrices(double *result, const double *matrix1, const double *matri
     matrix1[15]*matrix2[15];
 }
 
-inline void MultiplyMatrixByVector(double *resultvector, const double *matrix, double *pvector)
+inline void MultiplyMatrixByVector(float *resultvector, const float *matrix, float *pvector)
 {
   resultvector[0]=matrix[0]*pvector[0]+matrix[4]*pvector[1]+matrix[8]*pvector[2]+matrix[12]*pvector[3];
   resultvector[1]=matrix[1]*pvector[0]+matrix[5]*pvector[1]+matrix[9]*pvector[2]+matrix[13]*pvector[3];
@@ -250,13 +250,13 @@ inline void MultiplyMatrixByVector(double *resultvector, const double *matrix, d
   resultvector[3]=matrix[3]*pvector[0]+matrix[7]*pvector[1]+matrix[11]*pvector[2]+matrix[15]*pvector[3];
 }
 
-#define SWAP_ROWS(a, b) { double *_tmp = a; (a)=(b); (b)=_tmp; }
+#define SWAP_ROWS(a, b) { float *_tmp = a; (a)=(b); (b)=_tmp; }
 #define MAT(m,r,c) (m)[(c)*4+(r)]
 
-int InvertMatrix(double *m, double *out){
-  double wtmp[4][8];
-  double m0, m1, m2, m3, s;
-  double *r0, *r1, *r2, *r3;
+int InvertMatrix(float *m, float *out){
+  float wtmp[4][8];
+  float m0, m1, m2, m3, s;
+  float *r0, *r1, *r2, *r3;
   r0 = wtmp[0], r1 = wtmp[1], r2 = wtmp[2], r3 = wtmp[3];
   r0[0] = MAT(m, 0, 0), r0[1] = MAT(m, 0, 1),
     r0[2] = MAT(m, 0, 2), r0[3] = MAT(m, 0, 3),
@@ -271,11 +271,11 @@ int InvertMatrix(double *m, double *out){
     r3[2] = MAT(m, 3, 2), r3[3] = MAT(m, 3, 3),
     r3[7] = 1.0, r3[4] = r3[5] = r3[6] = 0.0;
   /* choose pivot - or die */
-  if (fabs(r3[0]) > fabs(r2[0]))
+  if (fabsf(r3[0]) > fabsf(r2[0]))
     SWAP_ROWS(r3, r2);
-  if (fabs(r2[0]) > fabs(r1[0]))
+  if (fabsf(r2[0]) > fabsf(r1[0]))
     SWAP_ROWS(r2, r1);
-  if (fabs(r1[0]) > fabs(r0[0]))
+  if (fabsf(r1[0]) > fabsf(r0[0]))
     SWAP_ROWS(r1, r0);
   if (0.0 == r0[0])
     return 0;
@@ -320,9 +320,9 @@ int InvertMatrix(double *m, double *out){
     r3[7] -= m3 * s;
   }
   /* choose pivot - or die */
-  if (fabs(r3[1]) > fabs(r2[1]))
+  if (fabsf(r3[1]) > fabsf(r2[1]))
     SWAP_ROWS(r3, r2);
-  if (fabs(r2[1]) > fabs(r1[1]))
+  if (fabsf(r2[1]) > fabsf(r1[1]))
     SWAP_ROWS(r2, r1);
   if (0.0 == r1[1])
     return 0;
@@ -354,7 +354,7 @@ int InvertMatrix(double *m, double *out){
     r3[7] -= m3 * s;
   }
   /* choose pivot - or die */
-  if (fabs(r3[2]) > fabs(r2[2]))
+  if (fabsf(r3[2]) > fabsf(r2[2]))
     SWAP_ROWS(r3, r2);
   if (0.0 == r2[2])
     return 0;
@@ -403,8 +403,8 @@ int InvertMatrix(double *m, double *out){
   return 1;
 }
 
-void Translate(double *result, double x, double y, double z){
-  double matrix[16], resultMatrix[16];
+void Translate(float *result, float x, float y, float z){
+  float matrix[16], resultMatrix[16];
 
   LoadIdentity(matrix);
   matrix[12] = x;
@@ -412,5 +412,5 @@ void Translate(double *result, double x, double y, double z){
   matrix[14] = z;
 
   MultiplyMatrices(resultMatrix, result, matrix);
-  memcpy(result, resultMatrix, 16*sizeof(double));
+  memcpy(result, resultMatrix, 16*sizeof(float));
 }
