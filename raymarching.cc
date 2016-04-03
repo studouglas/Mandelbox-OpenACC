@@ -27,8 +27,10 @@
 #define SQR(x) ((x)*(x))
 #define COMPONENT_FOLD(x) { (x) = (fabs(x) <= 1) ? (x) : (((x) > 0) ? (2-(x)) : (-2-(x))); }
 
-#pragma acc declare copyin(mandelBox_params)
+// #pragma acc declare copyin(mandelBox_params)
 extern MandelBoxParams mandelBox_params;
+
+extern double* d_distances;
 
 inline double MandelBoxDE(const vec3 &p0, const MandelBoxParams &params, double c1, double c2)
 {
@@ -114,7 +116,7 @@ inline void normal(const vec3 & p, vec3 & normal)
 #pragma acc declare copyin(mandelBox_params)
 #pragma acc routine seq
 void rayMarch(const RenderParams &render_params, const vec3 &from, const vec3 &direction, double eps,
-        pixelData& pix_data)
+        pixelData& pix_data, double& distance)
 {
 
   double dist = 0.0;
@@ -141,7 +143,7 @@ void rayMarch(const RenderParams &render_params, const vec3 &from, const vec3 &d
   
   if (dist < epsModified) 
   {
-    //we didnt escape
+    // we didnt escape
     pix_data.escaped = false;
     
     // We hit something, or reached MaxRaySteps
@@ -153,10 +155,12 @@ void rayMarch(const RenderParams &render_params, const vec3 &from, const vec3 &d
     SUBTRACT_POINT(temp, p, temp);
     const vec3 normPos = temp;
     normal(normPos, pix_data.normal);
+    distance = totalDist;
   }
   else {
     //we have the background colour
     pix_data.escaped = true;
+    distance = 0.0;
   }
 }
 
