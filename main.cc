@@ -40,7 +40,7 @@ void init3D       (CameraParams *camera_params, const RenderParams *renderer_par
 void renderFractal(const CameraParams camera_params, const RenderParams renderer_params, unsigned char* image);
 void saveBMP      (const char* filename, const unsigned char* image, int width, int height);
 
-#define NUM_FRAMES 45
+#define NUM_FRAMES 1
 
 #pragma acc declare copyin(mandelBox_params)
 MandelBoxParams mandelBox_params;
@@ -80,12 +80,12 @@ int main(int argc, char** argv)
 
   for (int i = 0; i < NUM_FRAMES; i++) {
     renderFractal(camera_params, renderer_params, image);
-	char new_file_name[80];
-	camera_params.camPos[0] -= 0.2;
-	camera_params.camPos[1] -= 0.1;
-	camera_params.camPos[2] -= 0.1;
-	sprintf(new_file_name, "image_%d.bmp", i);
-	saveBMP(new_file_name, image, renderer_params.width, renderer_params.height);
+	  char new_file_name[80];
+  	camera_params.camPos[0] -= 0.2;
+  	camera_params.camPos[1] -= 0.1;
+  	camera_params.camPos[2] -= 0.1;
+  	sprintf(new_file_name, "image_%d.bmp", i);
+  	saveBMP(new_file_name, image, renderer_params.width, renderer_params.height);
   }
   
   free(image);

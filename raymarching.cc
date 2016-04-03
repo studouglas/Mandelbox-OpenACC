@@ -90,19 +90,19 @@ inline void normal(const vec3 & p, vec3 & normal)
   ADD_POINT(t1, p, e1);
   x = DE(t1);
   SUBTRACT_POINT(t1, p, e1);
-  normal.x = DE(t1) - x;
+  normal.x = x - DE(t1);
   
   VEC(e1, 0, eps, 0);
   ADD_POINT(t1, p, e1);
   x = DE(t1);
   SUBTRACT_POINT(t1, p, e1);
-  normal.y = DE(t1) - x;
+  normal.y = x - DE(t1);
 
   VEC(e1, 0, 0, eps);
   ADD_POINT(t1, p, e1);
   x = DE(t1);
   SUBTRACT_POINT(t1, p, e1);
-  normal.z = DE(t1) - x;
+  normal.z = x - DE(t1);
   
   // calculating either of the last two x1,x2 causes compiler warning:
   // 'No device symbol for address reference'
