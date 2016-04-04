@@ -9,6 +9,9 @@
 \usepackage{tabularx}
 \usepackage{hyperref}
 \usepackage{makecell}
+\usepackage{xcolor}
+\lstset{language=C, breaklines=true, basicstyle=\footnotesize\ttfamily,keepspaces=true,showstringspaces=false,
+	stringstyle=\color{orange},commentstyle=\color{white!60!black},keywordstyle=\color{green!60!black}}
 
 % Title Page -----------------------------------------------------------------
 \title{
@@ -47,7 +50,9 @@ The complex data that is private to each thread, such as the pixel data objects,
 We observed that once the program renders an image, it must wait for the CPU to write that image to disk before continuing to the next frame. We introduced a simple optimization to allow execution to continue, so that the GPU can be rendering the next frame while the CPU is writing the previous one to the disk. This was a simple matter of creating a new thread to write the image out, then continuing to the next iteration for rendering, swapping out the image buffer with another. Once execution reaches the \texttt{saveBMP} call again, it waits for the ``write-out'' thread to finish, then spawns a new thread and continues. Having two image buffers does increase memory usage, but it allows both the host and device to do time-consuming work at the same time.
 
 \section{Computing Parameters for Frames}\label{Sec_AutomaticNav}
+Generating the camera parameters for the next frame is done automatically, based on the furthest point in the mandelbox. To do this, additional data eneds to be stored about each point. That is, each GPU thread will know how far the point is that it hits from \texttt{rayMarch}, as well as the vector representing that point. After the kernel has finished executing, we need to find the point witht the maximum distance (that is non-infinite). Initially, it seems intuitive to use an OpenACC \texttt{max} reduction to find this distance, but we need to know the vecotr associated with that point, which is not supproted by a reduction. Instead, we copy an array storing the distances to each point back from the GPU when the kernel exits, and the CPU iterates through them to find the max. Once it does, it uses \texttt{acc\_memcpy\_from\_device} to copy the vector associated with that point back, without needing to copy the entire array of pixel data.\\
 
+After the new vector is found, execution returns to \texttt{main}, and the CPU calculates camera position and target for the next frame. To make this smooth, every 10 frames the farthest point is saved, and for the other 9 iterations the frame's new target is linearly interpolated between the current point and the farthest point. The position of the camera always moves directly towards the target saved every 10 frames. This ensures that camera movement is smooth as the furthest points change, but the actual position of the camera will still go to the correct point (i.e. not hit a wall).
 
 \section{Mandelbox Performance vs. Mandelbulb}
 
@@ -70,6 +75,29 @@ Due to OpenACC requirements for nested inline routines being in the same source 
 \item \texttt{print.c}
 \item \texttt{timing.c}
 \end{itemize}
+
+Following are the modified source code files. Note that we made every effort to write ``self-documenting'' code by using clear variable names, so tried to limit comments within the source code to situations that are not immediately clear. Files are sorted alphabetically.
+
+\subsection{getcolor.cc}
+\lstinputlisting{../getcolor.cc}
+
+\subsection{main.cc}
+\lstinputlisting{../main.cc}
+
+\subsection{raymarching.cc}
+\lstinputlisting{../raymarching.cc}
+
+\subsection{renderer.cc}
+\lstinputlisting{../renderer.cc}
+
+\subsection{vector3d.h}
+\lstinputlisting{../vector3d.h}
+
+\subsection{3d.cc}
+\lstinputlisting{../3d.cc}
+
+\subsection{3d.h}
+\lstinputlisting{../3d.h}
 
 \section{Running the Program}
 To generate the video, follow the following steps.
