@@ -1,0 +1,88 @@
+\documentclass[11pt]{article}
+
+% Packages
+\usepackage[margin=1.2in]{geometry}
+\usepackage{graphicx}
+\usepackage{enumerate}
+\usepackage{listings}
+\usepackage{titling}
+\usepackage{tabularx}
+\usepackage{hyperref}
+\usepackage{makecell}
+
+% Title Page -----------------------------------------------------------------
+\title{
+\LARGE CS 4F03 -- Distributed Systems:
+\\\vspace{10mm}
+\large \textbf{Final Project Report}
+\vspace{40mm}
+}
+\author{
+Stuart Douglas -- 1214422
+\\Matthew Pagnan -- 1208693
+\vspace{10mm}
+}
+\date{\vfill \today}
+% End Title Page -------------------------------------------------------------
+\setlength{\parindent}{0pt}
+
+\begin{document}
+\maketitle
+\newpage
+% =================== Section =================== 
+\tableofcontents
+\newpage
+
+\section{Description of Parallelization}
+\subsection{OpenACC Overview}
+The parallelization of the project is based off of the nested for-loop in \texttt{renderFractal} that iterates over each pixel in the output image, calculating the correct colour for that pixel based off of the passed parameters. When the loop is encountered, the necessary data from the CPU's DRAM is copied in. A kernel is then launched on the GPU, and each thread begins the processing for one pixel. Every function call within the kernel is run sequentially on the calling thread, with all subsequent routines from \emph{those} functions inlined. Finally, the image data is copied back to the CPU.
+
+\subsection{Vector3D}
+Originally, a \texttt{vec3} was represented by a C++ class. We changed this implementation to a struct, and wrote macros to perform computations on the vector. There were a few macros originally included with the project, but many more had to be written to ensure all \texttt{vec3} operations could be run on the \texttt{vec3} struct. Using macros simplified integration with OpenACC, as routines are a relatively new feature and not fully robust yet.
+
+\subsection{OpenACC Data}
+The complex data that is private to each thread, such as the pixel data objects, the vectors storing the \texttt{colour} and the \texttt{to} vector for the pixel, and the double array containing the \texttt{farPoint} for the pixel are all stored in arrays, where each thread on the GPU accesses one element of each array. These values are not needed by the CPU at all, so the arrays are allocated on GPU memory using \texttt{acc\_malloc}, and declared as device pointers. Note that they are allocated once at the beginning of the program and freed just before the program exits.
+
+\subsection{Writing BMP to Disk}
+We observed that once the program renders an image, it must wait for the CPU to write that image to disk before continuing to the next frame. We introduced a simple optimization to allow execution to continue, so that the GPU can be rendering the next frame while the CPU is writing the previous one to the disk. This was a simple matter of creating a new thread to write the image out, then continuing to the next iteration for rendering, swapping out the image buffer with another. Once execution reaches the \texttt{saveBMP} call again, it waits for the ``write-out'' thread to finish, then spawns a new thread and continues. Having two image buffers does increase memory usage, but it allows both the host and device to do time-consuming work at the same time.
+
+\section{Computing Parameters for Frames}\label{Sec_AutomaticNav}
+
+
+\section{Mandelbox Performance vs. Mandelbulb}
+
+\section{Source Code}
+The following source code files were not changed from the serial version of the program, and as such will their contents will not be reproduced in this document.
+\begin{itemize}
+\item \texttt{camera.h}
+\item \texttt{color.h}
+\item \texttt{getparams.c}
+\item \texttt{init3D.cc}
+\item \texttt{mandelbox.h}
+\item \texttt{renderer.h}
+\item \texttt{savebmp.c}
+\end{itemize}
+
+Due to OpenACC requirements for nested inline routines being in the same source file, the \texttt{MandelBoxDE} and \texttt{DE} functions were moved to \texttt{raymarching.cc}. Functions for printing progress and timing data were removed, as they were no longer deemed necessary due to the speedups from running the program on the GPU. As such, the following source code files were removed.
+\begin{itemize}
+\item \texttt{distance\_est.cc}
+\item \texttt{mandelboxde.cc}
+\item \texttt{print.c}
+\item \texttt{timing.c}
+\end{itemize}
+
+\section{Running the Program}
+To generate the video, follow the following steps.
+\begin{enumerate}
+\item Run \texttt{make mandelbox} from the project directory
+\item Execute the program with \texttt{./mandelbox params.dat}
+\item Convert the images to a video by running \texttt{convert\_to\_video}
+\end{enumerate}
+
+If you wish to change the number of frames, simply open \texttt{main.cc} and replace the value for the \texttt{NUM\_FRAMES} pragma with the desired number of frames.
+
+\section{Bonus Features}
+\subsection{Automatic Navigation}
+The automatic navigation functionality for the project was implemented. That is, the pgroam will determine a path through the mandelbox that does not ``hit'' any walls, nor leave the box itself. For more details on the algorithm used, refer to section \ref{Sec_AutomaticNav}.
+
+\end{document}
