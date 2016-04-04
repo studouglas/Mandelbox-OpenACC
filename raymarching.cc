@@ -27,8 +27,10 @@
 #define SQR(x) ((x)*(x))
 #define COMPONENT_FOLD(x) { (x) = (fabs(x) <= 1) ? (x) : (((x) > 0) ? (2-(x)) : (-2-(x))); }
 
-#pragma acc declare copyin(mandelBox_params)
+// #pragma acc declare copyin(mandelBox_params)
 extern MandelBoxParams mandelBox_params;
+
+extern double* d_distances;
 
 inline double MandelBoxDE(const vec3 &p0, const MandelBoxParams &params, double c1, double c2)
 {
@@ -90,19 +92,19 @@ inline void normal(const vec3 & p, vec3 & normal)
   ADD_POINT(t1, p, e1);
   x = DE(t1);
   SUBTRACT_POINT(t1, p, e1);
-  normal.x = DE(t1) - x;
+  normal.x = x - DE(t1);
   
   VEC(e1, 0, eps, 0);
   ADD_POINT(t1, p, e1);
   x = DE(t1);
   SUBTRACT_POINT(t1, p, e1);
-  normal.y = DE(t1) - x;
+  normal.y = x - DE(t1);
 
   VEC(e1, 0, 0, eps);
   ADD_POINT(t1, p, e1);
   x = DE(t1);
   SUBTRACT_POINT(t1, p, e1);
-  normal.z = DE(t1) - x;
+  normal.z = x - DE(t1);
   
   // calculating either of the last two x1,x2 causes compiler warning:
   // 'No device symbol for address reference'
@@ -114,7 +116,7 @@ inline void normal(const vec3 & p, vec3 & normal)
 #pragma acc declare copyin(mandelBox_params)
 #pragma acc routine seq
 void rayMarch(const RenderParams &render_params, const vec3 &from, const vec3 &direction, double eps,
-        pixelData& pix_data)
+        pixelData& pix_data, double& distance)
 {
 
   double dist = 0.0;
@@ -138,26 +140,10 @@ void rayMarch(const RenderParams &render_params, const vec3 &from, const vec3 &d
     steps++;
   }
   while (dist > epsModified && totalDist <= render_params.maxDistance && steps < render_params.maxRaySteps);
-  // vec3 p1;
-  // VEC(p1, from.x, from.y, from.z);
-  // COMPONENT_FOLD(p1.x);
-  // COMPONENT_FOLD(p1.y);
-  // tests1.x = MAGNITUDE(from);
-  // tests1.y = p1.x;
-  // tests1.z = p1.y;
-
-  // tests2.x = DE(from);
-  // double r2;
-  // DOT_ASSIGN(r2, from);
-  // tests2.y = r2;
-  // vec3 a;
-  // VEC(a, 1.0, 1.0, 1.0);
-  // MULT_SCALAR(a,a, 5.0);
-  // tests2.z = a.z;
   
   if (dist < epsModified) 
   {
-    //we didnt escape
+    // we didnt escape
     pix_data.escaped = false;
     
     // We hit something, or reached MaxRaySteps
@@ -169,10 +155,12 @@ void rayMarch(const RenderParams &render_params, const vec3 &from, const vec3 &d
     SUBTRACT_POINT(temp, p, temp);
     const vec3 normPos = temp;
     normal(normPos, pix_data.normal);
+    distance = totalDist;
   }
   else {
     //we have the background colour
     pix_data.escaped = true;
+    distance = 0.0;
   }
 }
 
