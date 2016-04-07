@@ -112,13 +112,13 @@ inline double MandelBulbDE(const vec3 &p0, const MandelBoxParams &params)
 
 inline double DE(const vec3 &p)
 {
-	#ifdef MANDELBOX
+	// #ifdef MANDELBOX
   double c1 = fabs(mandelBox_params.scale - 1.0);
   double c2 = pow(fabs(mandelBox_params.scale), 1 - mandelBox_params.num_iter);
   double d = MandelBoxDE(p, mandelBox_params, c1, c2);
-  #else
-  double d = MandelBulbDE(p,mandelBox_params);
-  #endif
+  // #else
+  // double d = MandelBulbDE(p,mandelBox_params);
+  // #endif
 
   return d;
 }
