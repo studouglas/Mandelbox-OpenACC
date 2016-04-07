@@ -1,14 +1,16 @@
-FRACTAL  = -DMandelBulb
 CC       = pgCC
 CXX      = pgCC
-FLAGS    = -acc -fast -ta=nvidia,cc30 -Minfo=accel -Minform=inform -O2 $(FRACTAL)
+FLAGS    = -acc -fast -ta=nvidia,cc30 -Minfo=accel -Minform=inform -O2
 CFLAGS   = $(FLAGS)
 CXXFLAGS = $(FLAGS)
-PROGRAM_NAME=mandelbulb
+BULB_PROGRAM_NAME=mandelbulb
+BOX_PROGRAM_NAME=mandelbox
 
-$(PROGRAM_NAME): main.o savebmp.o getparams.o 3d.o getcolor.o raymarching.o renderer.o init3D.o
-	$(CC) -o $@ $? $(CFLAGS) $(LDFLAGS)
+$(BULB_PROGRAM_NAME): main.o savebmp.o getparams.o 3d.o getcolor.o raymarching.o renderer.o init3D.o
+	$(CC) -o $@ $? $(CFLAGS) $(LDFLAGS) -DMANDELBULB
 
+$(BULB_PROGRAM_NAME): main.o savebmp.o getparams.o 3d.o getcolor.o raymarching.o renderer.o init3D.o
+	$(CC) -o $@ $? $(CFLAGS) $(LDFLAGS) -DMANDELBOX
 
 clean:
-	rm *.o $(PROGRAM_NAME)
+	rm *.o $(BOX_PROGRAM_NAME) $(BULB_PROGRAM_NAME)
