@@ -19,24 +19,19 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include <stdlib.h>
-
+#include <stdio.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include "openacc.h"
 
 #include "camera.h"
 #include "renderer.h"
 #include "mandelbox.h"
 #include "vector3d.h"
 #include "color.h"
-#include "openacc.h"
 
-//#include <thread>
-#include <time.h>
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h> 
-#include <sys/stat.h>
-#include <unistd.h>
 
-#define NUM_FRAMES 20
+#define NUM_FRAMES 10
 #define MOV_SPEED 0.001
 #define CAM_SPEED 0.04
 
@@ -88,6 +83,8 @@ int main(int argc, char** argv)
   vec3 furthestPoint;
   char new_file_name[80];
 
+  mkdir("images", 0777);
+
   for (int i = 0; i < NUM_FRAMES; i++) {
 	  if (i % 2 == 0) {
       currImage = image1;  
@@ -97,7 +94,7 @@ int main(int argc, char** argv)
 
     init3D(&camera_params, &renderer_params);
     renderFractal(camera_params, renderer_params, currImage);
-    
+
     vec3 camTarget, camPos;
     VEC(camTarget, camera_params.camTarget[0], camera_params.camTarget[1], camera_params.camTarget[2]);
     VEC(camPos, camera_params.camPos[0], camera_params.camPos[1], camera_params.camPos[2]);
@@ -105,27 +102,28 @@ int main(int argc, char** argv)
     double distBetweenFurthestPoints = DISTANCE_APART(furthestPoint, newLookAt);
     double distToFurthestPoint = DISTANCE_APART(camPos, furthestPoint);
     double distBetweenTargets = DISTANCE_APART(camTarget, furthestPoint);
-	
+
     if (i % 10 == 0) {
 			printf("Done rendering frame %d. Furthest point = [%f,%f,%f]\n", i, newLookAt.x, newLookAt.y, newLookAt.z);
 	  }
-	
+
   	// only change target when:
-  	// - we see a new target that is much farther away that what we are currently tracking and we have finished locking on to our currrent target
+  	// - we see a new target that is much farther away that what we are currently 
+    //   tracking and we have finished locking on to our currrent target
   	// - we have arrived at the point we were tracking
   	if (distToFurthestPoint < 0.5 || 
        (distBetweenFurthestPoints > distToFurthestPoint && distBetweenTargets < 0.5)) {
   		furthestPoint = newLookAt;
   	}
-  	
+
     camera_params.camTarget[0] += (furthestPoint.x - camTarget.x)*CAM_SPEED;
     camera_params.camTarget[1] += (furthestPoint.y - camTarget.y)*CAM_SPEED;
     camera_params.camTarget[2] += (furthestPoint.z - camTarget.z)*CAM_SPEED;
-  	
+
   	camera_params.camPos[0] += (furthestPoint.x - camPos.x)*MOV_SPEED;
   	camera_params.camPos[1] += (furthestPoint.y - camPos.y)*MOV_SPEED;
   	camera_params.camPos[2] += (furthestPoint.z - camPos.z)*MOV_SPEED;
-  	
+
   	if (distBetweenFurthestPoints < 5) {
   		camera_params.camPos[0] += (furthestPoint.x - camPos.x)*0.002;
   		camera_params.camPos[1] += (furthestPoint.y - camPos.y)*0.002;
@@ -133,8 +131,8 @@ int main(int argc, char** argv)
   	} else {
   		furthestPoint = newLookAt;
   	}
-    
-    sprintf(new_file_name, "image_%d.bmp", i);
+
+    sprintf(new_file_name, "images/image_%d.bmp", i);
     saveBMP(new_file_name, currImage, renderer_params.width, renderer_params.height);  
   }
 
