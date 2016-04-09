@@ -37,10 +37,8 @@
 #include <unistd.h>
 
 #define NUM_FRAMES 20
-#define MOV_SPEED 0.005
-#define CAM_SPEED 0.05
-#define FRAMES_FOR_NEW_TARGET 20
-#define DISTANCE_THRESHOLD 5
+#define MOV_SPEED 0.001
+#define CAM_SPEED 0.04
 
 void getParameters(char *filename, CameraParams *camera_params, RenderParams *renderer_params,
 		               MandelBoxParams *mandelBox_paramsP);
@@ -104,21 +102,42 @@ int main(int argc, char** argv)
     VEC(camTarget, camera_params.camTarget[0], camera_params.camTarget[1], camera_params.camTarget[2]);
     VEC(camPos, camera_params.camPos[0], camera_params.camPos[1], camera_params.camPos[2]);
 
-    double distanceFromTarget = DISTANCE_APART(camTarget, newLookAt);
-    if (distanceFromTarget < DISTANCE_THRESHOLD) {
-      // b-spline interpolation
-      // camPos =        A
-      // furthestPoint = B
-      // newLookAt =     C
-      
-    }
-
+    double distBetweenFurthestPoints = DISTANCE_APART(furthestPoint, newLookAt);
+    double distToFurthestPoint = DISTANCE_APART(camPos, furthestPoint);
+    double distBetweenTargets = DISTANCE_APART(camTarget, furthestPoint);
+	
     if (i % 10 == 0) {
-      printf("Done rendering frame %d. furthestPoint = [%f,%f,%f]\n", i, newLookAt.x, newLookAt.y, newLookAt.z);
-    }
+			printf("Done rendering frame %d. Furthest point = [%f,%f,%f]\n", i, newLookAt.x, newLookAt.y, newLookAt.z);
+	  }
+	
+  	// only change target when:
+  	// - we see a new target that is much farther away that what we are currently tracking and we have finished locking on to our currrent target
+  	// - we have arrived at the point we were tracking
+  	if (distToFurthestPoint < 0.5 || 
+       (distBetweenFurthestPoints > distToFurthestPoint && distBetweenTargets < 0.5)) {
+  		furthestPoint = newLookAt;
+  	}
+  	
+    camera_params.camTarget[0] += (furthestPoint.x - camTarget.x)*CAM_SPEED;
+    camera_params.camTarget[1] += (furthestPoint.y - camTarget.y)*CAM_SPEED;
+    camera_params.camTarget[2] += (furthestPoint.z - camTarget.z)*CAM_SPEED;
+  	
+  	camera_params.camPos[0] += (furthestPoint.x - camPos.x)*MOV_SPEED;
+  	camera_params.camPos[1] += (furthestPoint.y - camPos.y)*MOV_SPEED;
+  	camera_params.camPos[2] += (furthestPoint.z - camPos.z)*MOV_SPEED;
+  	
+  	if (distBetweenFurthestPoints < 5) {
+  		camera_params.camPos[0] += (furthestPoint.x - camPos.x)*0.002;
+  		camera_params.camPos[1] += (furthestPoint.y - camPos.y)*0.002;
+  		camera_params.camPos[2] += (furthestPoint.z - camPos.z)*0.002;
+  	} else {
+  		furthestPoint = newLookAt;
+  	}
+    
     sprintf(new_file_name, "image_%d.bmp", i);
     saveBMP(new_file_name, currImage, renderer_params.width, renderer_params.height);  
   }
+
   free(image1);
   free(image2);
 
