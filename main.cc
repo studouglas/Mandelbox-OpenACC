@@ -20,6 +20,7 @@
 */
 #include <stdlib.h>
 
+
 #include "camera.h"
 #include "renderer.h"
 #include "mandelbox.h"
@@ -28,19 +29,24 @@
 #include "openacc.h"
 
 //#include <thread>
+#include <time.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h> 
 #include <sys/stat.h>
 #include <unistd.h>
 
+#define NUM_FRAMES 20
+#define MOV_SPEED 0.005
+#define CAM_SPEED 0.05
+#define FRAMES_FOR_NEW_TARGET 20
+#define DISTANCE_THRESHOLD 5
+
 void getParameters(char *filename, CameraParams *camera_params, RenderParams *renderer_params,
-		   MandelBoxParams *mandelBox_paramsP);
+		               MandelBoxParams *mandelBox_paramsP);
 void init3D       (CameraParams *camera_params, const RenderParams *renderer_params);
 void renderFractal(const CameraParams camera_params, const RenderParams renderer_params, unsigned char* image);
 void saveBMP      (const char* filename, const unsigned char* image, int width, int height);
-
-#define NUM_FRAMES 10
 
 void genNewCamParams(CameraParams &curCam, CameraParams &nextCam){
 	curCam.camPos[0] += (nextCam.camPos[0] - curCam.camPos[0])*0.01;
@@ -48,36 +54,32 @@ void genNewCamParams(CameraParams &curCam, CameraParams &nextCam){
 	curCam.camPos[2] += (nextCam.camPos[2] - curCam.camPos[2])*0.01;
 }
 
-vec3 newLookAt;
-
-#pragma acc declare copyin(mandelBox_params)
+/***********************************************
+* Global Variables (public)
+***********************************************/
 MandelBoxParams mandelBox_params;
 
+// set by renderer.cc after each renderFractal
+vec3 newLookAt; 
+
+// device pointers, so we only allocate once and free once in entire program execution
 vec3* d_to;
 vec3* d_colours;
 double* d_farPoints;
 pixelData* d_pixData;
 double* d_distances;
-#pragma acc declare deviceptr(d_to, d_colours, d_farPoints, d_pixData, d_distances)
+#pragma acc declare deviceptr(d_to, d_colours, d_farPoints, d_pixData, d_distances) copyin(mandelBox_params)
 
 int main(int argc, char** argv)
 {
-	// make directory to hold all the generated images
-	struct stat st = {0};
-
-	if (stat("/videoDir", &st) == -1) {
-		mkdir("/videoDir", 0700);
-	}
-
-
-  CameraParams    camera_params;
-  RenderParams    renderer_params;
-  
+  CameraParams camera_params;
+  RenderParams renderer_params;
   getParameters(argv[1], &camera_params, &renderer_params, &mandelBox_params);
 
   int image_size = renderer_params.width * renderer_params.height;
   unsigned char *image1 = (unsigned char*)malloc(3*image_size*sizeof(unsigned char));
   unsigned char *image2 = (unsigned char*)malloc(3*image_size*sizeof(unsigned char));
+  unsigned char *currImage;
 
   d_to = (vec3*)acc_malloc(image_size * sizeof(vec3));
   d_colours = (vec3*)acc_malloc(image_size * sizeof(vec3));
@@ -85,9 +87,7 @@ int main(int argc, char** argv)
   d_pixData = (pixelData*)acc_malloc(image_size * sizeof(pixelData));
   d_distances = (double*)acc_malloc(image_size * sizeof(double));
 
-  vec3 newLookAtDest;
-//  std::thread writeBMP;
-  unsigned char *currImage;
+  vec3 furthestPoint;
   char new_file_name[80];
 
   for (int i = 0; i < NUM_FRAMES; i++) {
@@ -99,27 +99,25 @@ int main(int argc, char** argv)
 
     init3D(&camera_params, &renderer_params);
     renderFractal(camera_params, renderer_params, currImage);
-  	printf("Done rendering frame %d... new lookAt = [%f,%f,%f]\n", i, newLookAt.x, newLookAt.y, newLookAt.z);
     
-    if (i % 10 == 0) {
-      newLookAtDest = newLookAt;
+    vec3 camTarget, camPos;
+    VEC(camTarget, camera_params.camTarget[0], camera_params.camTarget[1], camera_params.camTarget[2]);
+    VEC(camPos, camera_params.camPos[0], camera_params.camPos[1], camera_params.camPos[2]);
+
+    double distanceFromTarget = DISTANCE_APART(camTarget, newLookAt);
+    if (distanceFromTarget < DISTANCE_THRESHOLD) {
+      // b-spline interpolation
+      // camPos =        A
+      // furthestPoint = B
+      // newLookAt =     C
+      
     }
-    
-    camera_params.camTarget[0] += (newLookAtDest.x - camera_params.camTarget[0])*0.1;
-    camera_params.camTarget[1] += (newLookAtDest.y - camera_params.camTarget[1])*0.1;
-    camera_params.camTarget[2] += (newLookAtDest.z - camera_params.camTarget[2])*0.1;
 
-    // move towards point
-    camera_params.camPos[0] += (newLookAtDest.x - camera_params.camPos[0])*0.01;
-    camera_params.camPos[1] += (newLookAtDest.y - camera_params.camPos[1])*0.01;
-    camera_params.camPos[2] += (newLookAtDest.z - camera_params.camPos[2])*0.01;
-
-    if (i != 0) {
-  //    writeBMP.join();
+    if (i % 10 == 0) {
+      printf("Done rendering frame %d. furthestPoint = [%f,%f,%f]\n", i, newLookAt.x, newLookAt.y, newLookAt.z);
     }
     sprintf(new_file_name, "image_%d.bmp", i);
-   // writeBMP = std::thread(saveBMP, new_file_name, currImage, renderer_params.width, renderer_params.height);  
-     saveBMP(new_file_name, currImage, renderer_params.width, renderer_params.height);  
+    saveBMP(new_file_name, currImage, renderer_params.width, renderer_params.height);  
   }
   free(image1);
   free(image2);

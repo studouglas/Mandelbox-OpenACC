@@ -31,6 +31,8 @@ typedef struct
   p.z=(v.z)+(u.z);\
 }
 
+#define DISTANCE_APART(p,q) ({ sqrt(pow(p.x-q.x, 2) + pow(p.y-q.y, 2) + pow(p.z-q.z, 2)); })
+
 #define NORMALIZE(p) {\
     double fMag = ( p.x*p.x + p.y*p.y + p.z*p.z );\
     if (fMag != 0){\

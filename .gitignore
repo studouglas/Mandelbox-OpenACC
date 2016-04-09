@@ -1,10 +1,11 @@
 # Executable
 mandelbox
-mandelVideo.mpg
-*.bmp
+mandelbulb
 
+# Images
 *.bmp
 *.mpg
+*.jpg
 
 # Compiled Object files
 *.slo
