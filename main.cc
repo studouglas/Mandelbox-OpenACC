@@ -37,10 +37,10 @@
 void getParameters(char *filename, CameraParams *camera_params, RenderParams *renderer_params,
 		   MandelBoxParams *mandelBox_paramsP);
 void init3D       (CameraParams *camera_params, const RenderParams *renderer_params);
-void renderFractal(const CameraParams camera_params, const RenderParams renderer_params, unsigned char* image);
+void renderFractal(const CameraParams camera_params, const RenderParams renderer_params, unsigned char* image, bool getDistance);
 void saveBMP      (const char* filename, const unsigned char* image, int width, int height);
 
-#define NUM_FRAMES 10
+#define NUM_FRAMES 1800
 
 void genNewCamParams(CameraParams &curCam, CameraParams &nextCam){
 	curCam.camPos[0] += (nextCam.camPos[0] - curCam.camPos[0])*0.01;
@@ -64,11 +64,6 @@ int main(int argc, char** argv)
 {
 	// make directory to hold all the generated images
 	struct stat st = {0};
-
-	if (stat("/videoDir", &st) == -1) {
-		mkdir("/videoDir", 0700);
-	}
-
 
   CameraParams    camera_params;
   RenderParams    renderer_params;
@@ -98,25 +93,59 @@ int main(int argc, char** argv)
     }
 
     init3D(&camera_params, &renderer_params);
-    renderFractal(camera_params, renderer_params, currImage);
-  	printf("Done rendering frame %d... new lookAt = [%f,%f,%f]\n", i, newLookAt.x, newLookAt.y, newLookAt.z);
-    
-    if (i % 10 == 0) {
-      newLookAtDest = newLookAt;
-    }
-    
-    camera_params.camTarget[0] += (newLookAtDest.x - camera_params.camTarget[0])*0.1;
-    camera_params.camTarget[1] += (newLookAtDest.y - camera_params.camTarget[1])*0.1;
-    camera_params.camTarget[2] += (newLookAtDest.z - camera_params.camTarget[2])*0.1;
+    renderFractal(camera_params, renderer_params, currImage, true);
 
-    // move towards point
-    camera_params.camPos[0] += (newLookAtDest.x - camera_params.camPos[0])*0.01;
-    camera_params.camPos[1] += (newLookAtDest.y - camera_params.camPos[1])*0.01;
-    camera_params.camPos[2] += (newLookAtDest.z - camera_params.camPos[2])*0.01;
-
+	
+    if (i % 50 == 0) {
+			printf("Done rendering frame %d... new lookAt = [%f,%f,%f]\n", i, newLookAt.x, newLookAt.y, newLookAt.z);
+	}
+	
+	// Distance between current target destination and potential new target destination
+	float targetDiff = sqrt(pow((newLookAtDest.x - newLookAt.x), 2.0) +
+					pow((newLookAtDest.y - newLookAt.y), 2.0) +
+					pow((newLookAtDest.z - newLookAt.z), 2.0));
+	
+	//Distance between Camera's position and target destination
+	float posDist = sqrt(pow((newLookAtDest.x - camera_params.camPos[0]), 2.0) +
+						pow((newLookAtDest.y - camera_params.camPos[1]), 2.0) +
+						pow((newLookAtDest.z - camera_params.camPos[2]), 2.0));
+	
+	// Distance between where camera is looking at and target destination
+	float lookDist =	sqrt(pow((newLookAtDest.x - camera_params.camTarget[0]), 2.0) +
+						pow((newLookAtDest.y - camera_params.camTarget[1]), 2.0) +
+						pow((newLookAtDest.z - camera_params.camTarget[2]), 2.0));
+	
+	// only change target when:
+	// - we see a new target that is much farther away that what we are currently tracking and we have finished locking on to our currrent target
+	// - we have arrived at the point we were tracking
+	if(posDist < 0.5 || (targetDiff > posDist && lookDist < 0.5)){
+		newLookAtDest = newLookAt;
+	}
+	
+	// Have camera face Target
+	//if(destDiff > 1){
+    camera_params.camTarget[0] += (newLookAtDest.x - camera_params.camTarget[0])*0.04;
+    camera_params.camTarget[1] += (newLookAtDest.y - camera_params.camTarget[1])*0.04;
+    camera_params.camTarget[2] += (newLookAtDest.z - camera_params.camTarget[2])*0.04;
+	//}
+	
+	// Always on the move
+	camera_params.camPos[0] += (newLookAtDest.x - camera_params.camPos[0])*0.001;
+	camera_params.camPos[1] += (newLookAtDest.y - camera_params.camPos[1])*0.001;
+	camera_params.camPos[2] += (newLookAtDest.z - camera_params.camPos[2])*0.001;
+	
+	if(lookDist < 5){// hull ass when going forward
+		// move towards point
+		camera_params.camPos[0] += (newLookAtDest.x - camera_params.camPos[0])*0.002;
+		camera_params.camPos[1] += (newLookAtDest.y - camera_params.camPos[1])*0.002;
+		camera_params.camPos[2] += (newLookAtDest.z - camera_params.camPos[2])*0.002;
+	}
     if (i != 0) {
   //    writeBMP.join();
     }
+	else{
+		newLookAtDest = newLookAt;
+	}
     sprintf(new_file_name, "image_%d.bmp", i);
    // writeBMP = std::thread(saveBMP, new_file_name, currImage, renderer_params.width, renderer_params.height);  
      saveBMP(new_file_name, currImage, renderer_params.width, renderer_params.height);  
