@@ -9,14 +9,14 @@
 1.1
 # IMAGE
 # width height
-1920 1080
+3840 2160
 # detail level, the smaller the more detailed (-3)
--4
+-3.2
 # MANDELBOX
 # scale, rMin, rFixed  (2 0.5 1)
 2  0.5 1
 # max number of iterations, escape time
-18 100
+30 100
 # COLORING
 # type 0 or 1  
 1

@@ -11,4 +11,4 @@ do
 done
 
 # create movie
-ffmpeg -r 30 -i images/image_%d.jpg mandelbox_video.mp4
+ffmpeg -r 30 -i images/image_%d.jpg mandelbox_video.mpg
