@@ -112,7 +112,7 @@ int main(int argc, char** argv)
     //   tracking and we have finished locking on to our currrent target
   	// - we have arrived at the point we were tracking
   	if (distToFurthestPoint < 0.5 || 
-       (distBetweenFurthestPoints > distToFurthestPoint && distBetweenTargets < 0.5)) {
+       (distBetweenFurthestPoints > distToFurthestPoint && distBetweenTargets < 0.25)) {
   		furthestPoint = newLookAt;
   	}
 
