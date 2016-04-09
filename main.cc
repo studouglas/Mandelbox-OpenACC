@@ -31,7 +31,7 @@
 #include "color.h"
 
 
-#define NUM_FRAMES 10
+#define NUM_FRAMES 7200
 #define MOV_SPEED 0.001
 #define CAM_SPEED 0.04
 
@@ -103,9 +103,9 @@ int main(int argc, char** argv)
     double distToFurthestPoint = DISTANCE_APART(camPos, furthestPoint);
     double distBetweenTargets = DISTANCE_APART(camTarget, furthestPoint);
 
-    if (i % 10 == 0) {
-			printf("Done rendering frame %d. Furthest point = [%f,%f,%f]\n", i, newLookAt.x, newLookAt.y, newLookAt.z);
-	  }
+    if (i % 50 == 0) {
+	  printf("Done rendering frame %d\n", i);
+	}
 
   	// only change target when:
   	// - we see a new target that is much farther away that what we are currently 
