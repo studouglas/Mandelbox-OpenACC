@@ -28,7 +28,6 @@
 #include "camera.h"
 #include "renderer.h"
 
-
 void   LoadIdentity   (double *matrix);
 void   Perspective    (double fov, double aspect, double zNear, double zFar, double *projMatrix);
 void   Frustum        (double left, double right, double bottom, double top, double znear, double zfar, double *matrix);

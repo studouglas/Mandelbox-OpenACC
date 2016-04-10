@@ -28,25 +28,26 @@
 #include "vector3d.h"
 #include "3d.h"
 
-extern double getTime();
-extern void   printProgress( double perc, double time );
-
 #pragma acc routine seq
 extern void rayMarch (const RenderParams &render_params, const vec3 &from, const vec3  &to, double eps, pixelData &pix_data, double& distance);
 
 #pragma acc routine seq
 extern void getColour(vec3 & colour, const pixelData &pixData, const RenderParams &render_params, const vec3 &from, const vec3 &direction);
 
+// device pointers declared and allocated in main.cc
 extern MandelBoxParams mandelBox_params;
 extern vec3* d_to;
 extern vec3* d_colours;
 extern double* d_farPoints;
 extern pixelData* d_pixData;
 
-extern vec3 newLookAt;
+// used by main.cc to find new camera position after each frame
+extern vec3 newFurthestPoint;
+extern double* distances;
 
 void renderFractal(const CameraParams camera_params, const RenderParams renderer_params, unsigned char* image)
 {
+  // from is const
   vec3 fromTemp;
   VEC(fromTemp, camera_params.camPos[0], camera_params.camPos[1], camera_params.camPos[2]); 
   const vec3 from = fromTemp;
@@ -56,8 +57,6 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
   const int height = renderer_params.height;
   const int width  = renderer_params.width;
   const int n = width * height;
-  
-  double* distances = (double*)malloc(n * sizeof(double));
 
   #pragma acc data copyin(camera_params, renderer_params, eps, from)
   #pragma acc data deviceptr(d_to, d_colours, d_farPoints, d_pixData)
@@ -96,15 +95,13 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
     }
   }
   
-  // copy the vector at that point to our new look at
+  // copy the vector at the furthest point to our new look at
   if (maxDistanceIndex >= 0) {
-      acc_memcpy_from_device(&newLookAt, &(d_pixData[maxDistanceIndex].hit), sizeof(vec3));
+      acc_memcpy_from_device(&newFurthestPoint, &(d_pixData[maxDistanceIndex].hit), sizeof(vec3));
   } else {
     printf("No distance greater than 0 found. Looking at [0,0,0].\n");
-    newLookAt.x = 0;
-    newLookAt.y = 0;
-    newLookAt.z = 0;
+    newFurthestPoint.x = 0;
+    newFurthestPoint.y = 0;
+    newFurthestPoint.z = 0;
   }
-
-  free(distances);
 }
