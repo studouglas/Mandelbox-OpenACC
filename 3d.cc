@@ -18,7 +18,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-// #include <stdio.h>
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -31,8 +31,6 @@
 
 #include "3d.h"
 
-//---------------------------------------------------------------------------------------------
-//when projection and modelview matricies are static (computed only once, and camera does not mover)
 int UnProject(double winX, double winY, const CameraParams& camP, double *obj)
 {
   //Transformation vectors
@@ -57,7 +55,6 @@ int UnProject(double winX, double winY, const CameraParams& camP, double *obj)
   return 1;
 }
 
-
 void LoadIdentity(double *matrix){
   matrix[0] = 1.0;
   matrix[1] = 0.0;
@@ -80,14 +77,11 @@ void LoadIdentity(double *matrix){
   matrix[15] = 1.0;
 }
 
-//----------------------------------------------------------------------------------------
 void Perspective(double fov, double aspect, double zNear, double zFar, double *projMat)
 {
   double ymax, xmax;
   
   ymax = zNear * tan(fov * PI / 360.0);
-  //ymin = -ymax;
-  //xmin = -ymax * aspectRatio;
   xmax = ymax * aspect;
   Frustum(-xmax, xmax, -ymax, ymax, zNear, zFar, projMat);
 }

@@ -31,9 +31,11 @@
 #include "color.h"
 
 
-#define NUM_FRAMES 7200
+#define NUM_FRAMES 120
 #define MOV_SPEED 0.001
 #define CAM_SPEED 0.04
+#define REACH_TARGET_THRESHOLD 0.5
+#define NEW_TARGET_THRESHOLD 5
 
 void getParameters(char *filename, CameraParams *camera_params, RenderParams *renderer_params,
 		               MandelBoxParams *mandelBox_paramsP);
@@ -53,9 +55,9 @@ void genNewCamParams(CameraParams &curCam, CameraParams &nextCam){
 MandelBoxParams mandelBox_params;
 
 // set by renderer.cc after each renderFractal
-vec3 newLookAt; 
+vec3 newFurthestPoint; 
 
-// device pointers, so we only allocate once and free once in entire program execution
+// device pointers, we allocate once at program start and free just before program exits
 vec3* d_to;
 vec3* d_colours;
 double* d_farPoints;
@@ -70,74 +72,55 @@ int main(int argc, char** argv)
   getParameters(argv[1], &camera_params, &renderer_params, &mandelBox_params);
 
   int image_size = renderer_params.width * renderer_params.height;
-  unsigned char *image1 = (unsigned char*)malloc(3*image_size*sizeof(unsigned char));
-  unsigned char *image2 = (unsigned char*)malloc(3*image_size*sizeof(unsigned char));
-  unsigned char *currImage;
+  unsigned char *image = (unsigned char*)malloc(3*image_size*sizeof(unsigned char));
 
   d_to = (vec3*)acc_malloc(image_size * sizeof(vec3));
   d_colours = (vec3*)acc_malloc(image_size * sizeof(vec3));
   d_farPoints = (double*)acc_malloc(image_size * 3 * sizeof(double));
   d_pixData = (pixelData*)acc_malloc(image_size * sizeof(pixelData));
   d_distances = (double*)acc_malloc(image_size * sizeof(double));
-
+  
   vec3 furthestPoint;
   char new_file_name[80];
 
+  // store generated images in their own directory
   mkdir("images", 0777);
 
   for (int i = 0; i < NUM_FRAMES; i++) {
-	  if (i % 2 == 0) {
-      currImage = image1;  
-    } else {
-      currImage = image2;
-    }
-
     init3D(&camera_params, &renderer_params);
-    renderFractal(camera_params, renderer_params, currImage);
+    renderFractal(camera_params, renderer_params, image);
 
     vec3 camTarget, camPos;
     VEC(camTarget, camera_params.camTarget[0], camera_params.camTarget[1], camera_params.camTarget[2]);
     VEC(camPos, camera_params.camPos[0], camera_params.camPos[1], camera_params.camPos[2]);
 
-    double distBetweenFurthestPoints = DISTANCE_APART(furthestPoint, newLookAt);
-    double distToFurthestPoint = DISTANCE_APART(camPos, furthestPoint);
-    double distBetweenTargets = DISTANCE_APART(camTarget, furthestPoint);
-
-    if (i % 50 == 0) {
-	  printf("Done rendering frame %d\n", i);
-	}
+    if (i % 10 == 0) {
+	    printf("Done rendering frame %d\n", i);
+	  }
 
   	// only change target when:
-  	// - we see a new target that is much farther away that what we are currently 
-    //   tracking and we have finished locking on to our currrent target
   	// - we have arrived at the point we were tracking
-  	if (distToFurthestPoint < 0.5 || 
-       (distBetweenFurthestPoints > distToFurthestPoint && distBetweenTargets < 0.25)) {
-  		furthestPoint = newLookAt;
+    // - we've finished locking on to the current target
+  	if (DISTANCE_APART(camPos, furthestPoint) < REACH_TARGET_THRESHOLD 
+     || DISTANCE_APART(camTarget, furthestPoint) < REACH_TARGET_THRESHOLD) {
+  		furthestPoint = newFurthestPoint;
   	}
 
+    // camera gradually points to the target
     camera_params.camTarget[0] += (furthestPoint.x - camTarget.x)*CAM_SPEED;
     camera_params.camTarget[1] += (furthestPoint.y - camTarget.y)*CAM_SPEED;
     camera_params.camTarget[2] += (furthestPoint.z - camTarget.z)*CAM_SPEED;
 
+    // camera moves towards the target
   	camera_params.camPos[0] += (furthestPoint.x - camPos.x)*MOV_SPEED;
   	camera_params.camPos[1] += (furthestPoint.y - camPos.y)*MOV_SPEED;
   	camera_params.camPos[2] += (furthestPoint.z - camPos.z)*MOV_SPEED;
 
-  	if (distBetweenFurthestPoints < 5) {
-  		camera_params.camPos[0] += (furthestPoint.x - camPos.x)*0.002;
-  		camera_params.camPos[1] += (furthestPoint.y - camPos.y)*0.002;
-  		camera_params.camPos[2] += (furthestPoint.z - camPos.z)*0.002;
-  	} else {
-  		furthestPoint = newLookAt;
-  	}
-
     sprintf(new_file_name, "images/image_%d.bmp", i);
-    saveBMP(new_file_name, currImage, renderer_params.width, renderer_params.height);  
+    saveBMP(new_file_name, image, renderer_params.width, renderer_params.height);  
   }
 
-  free(image1);
-  free(image2);
+  free(image);
 
   acc_free(d_to);
   acc_free(d_colours);
