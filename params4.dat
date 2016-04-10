@@ -1,8 +1,8 @@
 #CAMERA
 #camera position x,y,z; 
-7 7 7
+10 5 3
 #target position x,y,z
-1.4 4 4
+0 0 0
 #camera up vector x,y,z;  0, 1, 0 good default
 0 1 0
 #field of view
@@ -10,13 +10,13 @@
 #
 #IMAGE
 #image size 
-800 600
+1920 1080
 #detail level, the smaller the more detailed, -3 good defaut
--2.5
+-3
 # 
 #FRACTAL  
 #scale, rmin, rFixed
-2.0  0.5 1
+2.0  0.25 1.5
 #max iterations, escape time
 18 10
 #
