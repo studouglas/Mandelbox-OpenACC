@@ -72,54 +72,11 @@ inline double MandelBoxDE(const vec3 &p0, const MandelBoxParams &params, double 
   return  (MAGNITUDE(p) - c1) / dfactor - c2;
 }
 
-inline double MandelBulbDE(const vec3 &p0, const MandelBoxParams &params)
-{
-  vec3 z;
-  z = p0;
-  
-  double dr = 1.0;
-  double r = 0.0;
-
-  double Bailout = params.rMin;
-  double Power = params.rFixed;
-
-  for (int i = 0; i < params.num_iter; i++) 
-	{
-	  r = MAGNITUDE(z);
-	  if (r > Bailout) {
-	  	break; 
-	  }
-
-	  double theta = acos(z.z/r);
-	  double phi   = atan2(z.y, z.x);
-	  dr = pow(r, Power - 1.0) * Power * dr + 1.0;
-
-	  double zr = pow(r, Power);
-	  theta     = theta * Power;
-	  phi       = phi * Power;
-
-	  z.x = zr*sin(theta)*cos(phi);
-	  z.y = zr*sin(phi)*sin(theta);
-	  z.z = zr*cos(theta);
-
-	  z.x = z.x + p0.x;
-	  z.y = z.y + p0.y;
-	  z.z = z.z + p0.z;
-	}
-  return 0.5*log(r)*r/dr;
-}
-
-
 inline double DE(const vec3 &p)
 {
-	// #ifdef MANDELBOX
    double c1 = fabs(mandelBox_params.scale - 1.0);
    double c2 = pow(fabs(mandelBox_params.scale), 1 - mandelBox_params.num_iter);
    double d = MandelBoxDE(p, mandelBox_params, c1, c2);
-  // #else
-  // finds some points, but image is all black (not background, black)  
-  //double d = MandelBulbDE(p,mandelBox_params);
-  // #endif
 
   return d;
 }
@@ -149,10 +106,6 @@ inline void normal(const vec3 & p, vec3 & normal)
   x = DE(t1);
   SUBTRACT_POINT(t1, p, e1);
   normal.z = x - DE(t1);
-  
-  // calculating either of the last two x1,x2 causes compiler warning:
-  // 'No device symbol for address reference'
-  // This is dependent on order in source file only.
 
   NORMALIZE(normal);
 }
