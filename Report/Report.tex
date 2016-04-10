@@ -39,7 +39,7 @@ Stuart Douglas -- 1214422
 
 \section{Description of Parallelization}
 \subsection{Overview}
-The parallelization of the project is based off of the nested for-loop in \texttt{renderFractal} that iterates over each pixel in the output image, calculating the correct colour for that pixel based off of the passed parameters. When the loop is encountered, the necessary data from the CPU's DRAM is copied in. A kernel is then launched on the GPU, and each thread begins the processing for one pixel. Every function call within the kernel is run sequentially on the calling thread, with all subsequent routines from \emph{those} functions inlined. Finally, the image data is copied back to the CPU.
+The parallelization of the project is based off of the nested for-loop in \texttt{renderFractal} that iterates over each pixel in the output image, calculating the correct colour for that pixel based off of the passed parameters. When the loop is encountered, the necessary data from the CPU's memory is copied in. A kernel is then launched on the GPU, and each thread begins the processing for one pixel. Every function call within the kernel is run sequentially on the calling thread, with all subsequent routines from \emph{those} functions inlined. Finally, the image data is copied back to the CPUre.
 
 \subsection{Vector3D}
 Originally, a \texttt{vec3} was represented by a C++ class. We changed this implementation to a struct, and wrote macros to perform computations on the vector. There were a few macros originally included with the project, but many more had to be written to ensure all \texttt{vec3} operations could be run on the \texttt{vec3} struct. Using macros simplified integration with OpenACC, as routines are a relatively new feature and not fully robust yet.
@@ -47,8 +47,8 @@ Originally, a \texttt{vec3} was represented by a C++ class. We changed this impl
 \subsection{OpenACC Data}
 The complex data that is private to each thread, such as the pixel data objects, the vectors storing the \texttt{colour} and the \texttt{to} vector for the pixel, and the double array containing the \texttt{farPoint} for the pixel are all stored in arrays, where each thread on the GPU accesses one element of each array. These values are not needed by the CPU at all, so the arrays are allocated on GPU memory using \texttt{acc\_malloc}, and declared as device pointers. Note that they are allocated once at the beginning of the program and freed just before the program exits.
 
-\subsection{Writing BMP to Disk}
-We observed that once the program renders an image, it must wait for the CPU to write that image to disk before continuing to the next frame. We introduced a simple optimization to allow execution to continue, so that the GPU can be rendering the next frame while the CPU is writing the previous one to the disk. This was a simple matter of creating a new thread to write the image out, then continuing to the next iteration for rendering, swapping out the image buffer with another. Once execution reaches the \texttt{saveBMP} call again, it waits for the ``write-out'' thread to finish, then spawns a new thread and continues. Having two image buffers does increase memory usage, but it allows both the host and device to do time-consuming work at the same time.
+%\subsection{Writing BMP to Disk}
+%We observed that once the program renders an image, it must wait for the CPU to write that image to disk before continuing to the next frame. We introduced a simple optimization to allow execution to continue, so that the GPU can be rendering the next frame while the CPU is writing the previous one to the disk. This was a simple matter of creating a new thread to write the image out, then continuing to the next iteration for rendering, swapping out the image buffer with another. Once execution reaches the \texttt{saveBMP} call again, it waits for the ``write-out'' thread to finish, then spawns a new thread and continues. Having two image buffers does increase memory usage, but it allows both the host and device to do time-consuming work at the same time.
 
 \section{Computing Parameters for Frames}\label{Sec_AutomaticNav}
 Generating the camera parameters for the next frame is done automatically, based on the furthest point in the mandelbox. To do this, additional data needs to be stored about each point. Each GPU thread will know how far the point is that it hits from \texttt{rayMarch}, as well as the vector representing that point. After the kernel has finished executing, we need to find the furthest of such points. Initially, it seems intuitive to use an OpenACC \texttt{max} reduction to find this distance as all the distance data is stored on the GPU, but we need to know the vector associated with that maximum distance, which is not supported by a reduction. Instead, we copy an array storing the distances to each point back from the GPU when the kernel exits, and the CPU iterates through them to find the max. Once it does, it uses \texttt{acc\_memcpy\_from\_device} to copy the vector associated with that distance back, without copying the entire array of pixel data. This does reduce performance a little, but the difference is relatively minor.\\
@@ -56,21 +56,13 @@ Generating the camera parameters for the next frame is done automatically, based
 After the new vector is found, execution returns to \texttt{main}, and the CPU calculates camera position and target for the next frame. To make this smooth, every 10 frames the farthest point is saved, and for the other 9 iterations the frame's new target is linearly interpolated between the current point and the farthest point. The position of the camera always moves directly towards the target saved every 10 frames. This ensures that camera movement is smooth as the furthest points change, but the actual position of the camera will still go to the correct point (i.e. not hit a wall).
 
 \section{Mandelbox Performance vs. Mandelbulb}
-\subsection{Explanation}
+The reason the mandelbulb is faster to compute comes down to the distance estimator for mandelbulbs. Although we did not run the mandelbulb code, we can observe why it will be faster. Following is the disance estimator code for the mandelbox:
+\lstinputlisting{mandelbox_de.cc}
 
-\subsection{Performance Analysis}
-The following performance data was collected to compare the mandelbulb and mandelbox performance.
-\begin{table}[h]
-\centering
-\caption{}
-\begin{tabular}{lcccc}
-\toprule
-Description & GPU Used & Number of Frames & Total Time (s) & Time Per Frame (s)\\\midrule
-Mandelbulb & Tesla & 100 & & \\
-Mandelbox & Tesla & 100 & & \\
-\bottomrule
-\end{tabular}
-\end{table}
+And for the mandelbulb:
+\lstinputlisting{mandelbulb_de.cc}
+
+
 
 \section{Source Code}
 The following source code files were not changed from the serial version of the program, and as such will their contents will not be reproduced in this document.
