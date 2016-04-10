@@ -31,7 +31,7 @@
 #include "color.h"
 
 
-#define NUM_FRAMES 120
+#define NUM_FRAMES 7200
 #define MOV_SPEED 0.001
 #define CAM_SPEED 0.04
 #define REACH_TARGET_THRESHOLD 0.5
@@ -94,8 +94,10 @@ int main(int argc, char** argv)
     VEC(camTarget, camera_params.camTarget[0], camera_params.camTarget[1], camera_params.camTarget[2]);
     VEC(camPos, camera_params.camPos[0], camera_params.camPos[1], camera_params.camPos[2]);
 
-    if (i % 10 == 0) {
-	    printf("Done rendering frame %d\n", i);
+    if (i % 50 == 0) {
+	    printf("Done rendering frame %d. camTarget=[%f,%f,%f], camPos = [%f,%f,%f], furthestPoint=[%f,%f,%f], newFurthestPoint=[%f,%f,%f]\n",
+			 i, camTarget.x, camTarget.y, camTarget.z, camPos.x, camPos.y, camPos.z, furthestPoint.x, furthestPoint.y, furthestPoint.z,
+			newFurthestPoint.x, newFurthestPoint.y, newFurthestPoint.z);
 	  }
 
   	// only change target when:
