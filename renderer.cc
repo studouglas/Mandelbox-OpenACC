@@ -43,7 +43,6 @@ extern pixelData* d_pixData;
 
 // used by main.cc to find new camera position after each frame
 extern vec3 newFurthestPoint;
-extern double* distances;
 
 void renderFractal(const CameraParams camera_params, const RenderParams renderer_params, unsigned char* image)
 {
@@ -57,6 +56,7 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
   const int height = renderer_params.height;
   const int width  = renderer_params.width;
   const int n = width * height;
+  double *distances = (double*)malloc(n * sizeof(double));
 
   #pragma acc data copyin(camera_params, renderer_params, eps, from)
   #pragma acc data deviceptr(d_to, d_colours, d_farPoints, d_pixData)
@@ -104,4 +104,6 @@ void renderFractal(const CameraParams camera_params, const RenderParams renderer
     newFurthestPoint.y = 0;
     newFurthestPoint.z = 0;
   }
+
+  free(distances);
 }

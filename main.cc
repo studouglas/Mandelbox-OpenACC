@@ -56,7 +56,6 @@ MandelBoxParams mandelBox_params;
 
 // set by renderer.cc after each renderFractal
 vec3 newFurthestPoint; 
-double* distances;
 
 // device pointers, we allocate once at program start and free just before program exits
 vec3* d_to;
@@ -80,8 +79,6 @@ int main(int argc, char** argv)
   d_farPoints = (double*)acc_malloc(image_size * 3 * sizeof(double));
   d_pixData = (pixelData*)acc_malloc(image_size * sizeof(pixelData));
   d_distances = (double*)acc_malloc(image_size * sizeof(double));
-
-  double* distances = (double*)malloc(image_size * sizeof(double));
   
   vec3 furthestPoint;
   char new_file_name[80];
@@ -119,17 +116,11 @@ int main(int argc, char** argv)
   	camera_params.camPos[1] += (furthestPoint.y - camPos.y)*MOV_SPEED;
   	camera_params.camPos[2] += (furthestPoint.z - camPos.z)*MOV_SPEED;
 
-    // if new furthest point is very different than current one, start going towards it
-  	if (DISTANCE_APART(furthestPoint, newFurthestPoint) >= NEW_TARGET_THRESHOLD) {
-  		furthestPoint = newFurthestPoint;
-  	}
-
     sprintf(new_file_name, "images/image_%d.bmp", i);
-    saveBMP(new_file_name, currImage, renderer_params.width, renderer_params.height);  
+    saveBMP(new_file_name, image, renderer_params.width, renderer_params.height);  
   }
 
   free(image);
-  free(distances);
 
   acc_free(d_to);
   acc_free(d_colours);
