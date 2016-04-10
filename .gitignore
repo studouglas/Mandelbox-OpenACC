@@ -2,6 +2,13 @@
 mandelbox
 mandelbulb
 
+Latex
+*.aux
+*.toc
+*.log
+*.synctex.gz
+*.out
+
 # Images
 *.bmp
 *.mp4

@@ -125,7 +125,7 @@ int main(int argc, char** argv)
   	}
 
     sprintf(new_file_name, "images/image_%d.bmp", i);
-    saveBMP(new_file_name, currImage, renderer_params.width, renderer_params.height);  
+    saveBMP(new_file_name, image, renderer_params.width, renderer_params.height);  
   }
 
   free(image);
