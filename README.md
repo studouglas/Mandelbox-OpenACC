@@ -12,7 +12,7 @@ The final rendered video can be found at [https://youtu.be/bwmpGCiiVN4](https://
 ## Usage
 1. Execute `make mandelbox` from the repo directory
 There should be no errors, and 1 warning that "Compiler failed to translate accelerator region" in `DE(const vec3 &)`
-2. Run `./mandelbox params.dat` to generate and save each frame as a .bmp file in the `images` directory
+2. Run `./mandelbox params_mandelbox.dat` to generate and save each frame as a .bmp file in the `images` directory
 3. Run `./video.sh` to convert the .bmp files to .jpg's and create a video at 30FPS
 
 ## Parameters File Format
