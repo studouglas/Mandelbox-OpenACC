@@ -37,6 +37,9 @@ Stuart Douglas -- 1214422
 \tableofcontents
 \newpage
 
+\section*{Video}
+The final video is 4 minutes at 30 FPS, each frame being 1920 x 1080 resolution. It can be found at \url{https://youtu.be/bwmpGCiiVN4}.
+
 \section{Description of Parallelization}
 \subsection{Overview}
 The parallelization of the project is based off of the nested for-loop in \texttt{renderFractal} that iterates over each pixel in the output image, calculating the correct colour for that pixel based off of the passed parameters. When the loop is encountered, the necessary data from the CPU's memory is copied in. A kernel is then launched on the GPU, and each thread begins the processing for one pixel. Every function call within the kernel is run sequentially on the calling thread, with all subsequent routines from \emph{those} functions inlined. Finally, the image data is copied back to the CPUre.
@@ -58,13 +61,13 @@ After the new vector is found, execution returns to \texttt{main}, and the CPU c
 The first condition is very obvious for why the camera will change targets, as we don't want to run into a wall. The second condition provides a more interesting video, by causing more camera movements rather than just locking on to a point and travelling in a straight line. That being said, it is undesirable to have the camera changing targets all the time, as the video would be extremely shaky. This is addressed by only allowing targets to change in the above two scenarios.
 
 \section{Mandelbox Performance vs. Mandelbulb}
-The reason the mandelbulb is faster to compute comes down to the distance estimator for mandelbulbs. Although we did not run the mandelbulb code, we can observe why it will be faster. Following is the disance estimator code for the mandelbox:
+The reason the mandelbulb is faster to compute comes down to the distance estimator for mandelbulbs. Although we did not run the mandelbulb code with OpenACC (gpu servers were all in use), we can observe why it will be faster. Following is the disance estimator code for the mandelbox:
 \lstinputlisting{mandelbox_de.cc}
 
 And for the mandelbulb:
 \lstinputlisting{mandelbulb_de.cc}
 
-It can be seen that 
+The mandelbox distance estimator does require two parameters that the mandelbulb does not, each of which need to be computed (\texttt{c1} and \texttt{c2}). But the main reason for the performance difference is that the mandelbulb distance estimator loop in general breaks out earlier than the box when \texttt{r > Bailout}. This is due to the nature of the computations in each distance estimator, and how they affect the value of \texttt{r} and \texttt{r2} for the mandelbulb and mandelbox, respectively. Additionally, the mandelbox distance estimator breaks out when the dot product of \texttt{p} is less than the square of the escape time. This compares to the mandelbulb, which checks the magnitude of \texttt{z} vs the minimum \texttt{r} value from the parameters file.
 
 \section{Source Code}
 The following source code files were not changed from the serial version of the program, and as such will their contents will not be reproduced in this document.
